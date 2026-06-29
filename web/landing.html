@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="isitalpha — upload your strategy returns and get an honest verdict: REAL, SELF-DECEPTION, or DEAD. The same out-of-sample engine that retired 24 strategies that looked great on a chart.">
+<title>isitalpha — Is your strategy real, or self-deception?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Newsreader:ital,wght@0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#080b11;
+    --bg-2:#0b0f17;
+    --surface:rgba(255,255,255,.025);
+    --surface-2:rgba(255,255,255,.045);
+    --line:rgba(255,255,255,.08);
+    --line-strong:rgba(255,255,255,.14);
+    --ink:#f3f5f8;
+    --ink-soft:#c4ccd6;
+    --muted:#8b94a3;
+    --muted-2:#69727f;
+    --teal:#5ad6c4;
+    --teal-deep:#1f8377;
+    --gold:#d8b878;
+    --gold-soft:#e8d3a3;
+    --green:#62c98a;
+    --green-soft:#8fe0ac;
+    --red:#e08a82;
+    --red-soft:#f0b4ae;
+    --amber:#e6b85c;
+    --amber-soft:#f2d089;
+    --radius:16px;
+    --radius-sm:11px;
+    --shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 24px 60px -24px rgba(0,0,0,.7);
+    --maxw:1080px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+    letter-spacing:-0.011em;
+    overflow-x:hidden;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;z-index:-2;
+    background:
+      radial-gradient(60% 50% at 18% 4%, rgba(31,131,119,.18), transparent 60%),
+      radial-gradient(50% 45% at 88% 2%, rgba(216,184,120,.11), transparent 62%),
+      radial-gradient(70% 60% at 50% 108%, rgba(31,131,119,.10), transparent 60%);
+    animation:drift 24s ease-in-out infinite alternate;
+  }
+  body::after{
+    content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background-image:radial-gradient(rgba(255,255,255,.022) 1px, transparent 1px);
+    background-size:42px 42px;
+    mask-image:radial-gradient(80% 60% at 50% 16%, #000, transparent 78%);
+  }
+  @keyframes drift{
+    0%{transform:translate3d(0,0,0) scale(1)}
+    100%{transform:translate3d(0,-14px,0) scale(1.04)}
+  }
+  @media (prefers-reduced-motion: reduce){
+    body::before{animation:none}
+    html{scroll-behavior:auto}
+    .badge-shimmer::after{animation:none !important}
+  }
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  a{color:var(--teal);text-decoration:none}
+  ::selection{background:rgba(90,214,196,.25);color:#fff}
+
+  /* ===== Buttons ===== */
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:9px;
+    font-weight:650;font-size:15px;letter-spacing:-0.01em;cursor:pointer;border:0;
+    padding:14px 26px;border-radius:12px;transition:transform .25s cubic-bezier(.2,.7,.3,1), filter .25s, box-shadow .25s;
+    white-space:nowrap;
+  }
+  .btn svg{width:17px;height:17px}
+  .btn-gold{
+    background:linear-gradient(180deg,#eee0c0,#d8b878);color:#1a1206;
+    box-shadow:0 10px 30px -10px rgba(216,184,120,.5), 0 1px 0 rgba(255,255,255,.4) inset;
+  }
+  .btn-gold:hover{transform:translateY(-2px);filter:brightness(1.05);box-shadow:0 16px 38px -12px rgba(216,184,120,.6)}
+  .btn-ghost{
+    background:var(--surface-2);color:var(--ink);border:1px solid var(--line-strong);
+  }
+  .btn-ghost:hover{transform:translateY(-2px);border-color:rgba(90,214,196,.45);background:rgba(90,214,196,.06)}
+  .btn-lg{padding:16px 32px;font-size:16px}
+
+  /* ===== Nav ===== */
+  nav{
+    position:sticky;top:0;z-index:50;
+    display:flex;justify-content:space-between;align-items:center;gap:18px;
+    max-width:var(--maxw);margin:0 auto;padding:16px 24px;
+    backdrop-filter:blur(10px);
+  }
+  .nav-shell{position:sticky;top:0;z-index:50;border-bottom:1px solid transparent;transition:border-color .3s, background .3s}
+  .nav-shell.scrolled{border-color:var(--line);background:rgba(8,11,17,.72);backdrop-filter:blur(14px)}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:-0.02em}
+  .logo .mark{
+    width:28px;height:28px;border-radius:7px;display:grid;place-items:center;
+    background:linear-gradient(150deg,#1f8377,#0d3b36);
+    border:1px solid rgba(90,214,196,.4);
+    box-shadow:0 0 24px -6px rgba(90,214,196,.5), 0 1px 0 rgba(255,255,255,.15) inset;
+  }
+  .logo .mark svg{width:16px;height:16px}
+  .logo span{color:var(--gold-soft)}
+  .nav-links{display:flex;align-items:center;gap:26px}
+  .nav-links a.lnk{color:var(--muted);font-size:14px;font-weight:500;transition:color .2s}
+  .nav-links a.lnk:hover{color:var(--ink)}
+  @media(max-width:760px){.nav-links a.lnk{display:none}}
+
+  /* ===== Hero ===== */
+  .hero{position:relative;padding:clamp(56px,9vw,108px) 0 clamp(44px,6vw,72px);text-align:center}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:9px;
+    color:var(--teal);font-size:12.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+    padding:7px 15px;border-radius:100px;border:1px solid rgba(90,214,196,.28);
+    background:rgba(90,214,196,.06);margin-bottom:28px;
+  }
+  .eyebrow .pip{width:6px;height:6px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 4px rgba(90,214,196,.16);animation:pulse 2.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .hero h1{
+    font-size:clamp(36px,6.2vw,68px);line-height:1.04;font-weight:700;letter-spacing:-0.035em;
+    max-width:14ch;margin:0 auto;
+  }
+  .hero h1 .serif{
+    font-family:'Newsreader',Georgia,serif;font-style:italic;font-weight:500;letter-spacing:-0.01em;
+    background:linear-gradient(120deg,#eee0c0,#d8b878 50%,#5ad6c4);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  }
+  .hero .sub{
+    color:var(--ink-soft);font-size:clamp(16px,2vw,19px);margin:26px auto 0;max-width:60ch;line-height:1.62;
+  }
+  .hero .sub b{color:var(--ink);font-weight:600}
+  .hero-cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:38px}
+  .hero-meta{
+    display:flex;gap:24px;justify-content:center;flex-wrap:wrap;
+    margin-top:30px;color:var(--muted-2);font-size:13px;
+  }
+  .hero-meta span{display:inline-flex;align-items:center;gap:7px}
+  .hero-meta svg{width:14px;height:14px;stroke:var(--teal);stroke-width:2;fill:none}
+
+  /* hero verdict preview chips */
+  .hero-chips{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:46px}
+  .vchip{
+    display:inline-flex;align-items:center;gap:10px;
+    padding:11px 18px;border-radius:13px;font-weight:700;font-size:14px;letter-spacing:.01em;
+    border:1px solid var(--c-line);background:var(--c-bg);color:var(--c-ink);
+    box-shadow:0 1px 0 rgba(255,255,255,.05) inset;
+  }
+  .vchip .dot{width:9px;height:9px;border-radius:50%;background:var(--c-ink);box-shadow:0 0 12px var(--c-ink)}
+  .vchip small{font-weight:500;color:var(--muted);letter-spacing:0}
+  .vchip.real{--c-ink:var(--green-soft);--c-line:rgba(98,201,138,.4);--c-bg:linear-gradient(160deg,rgba(98,201,138,.14),rgba(98,201,138,.03))}
+  .vchip.self{--c-ink:var(--red-soft);--c-line:rgba(224,138,130,.42);--c-bg:linear-gradient(160deg,rgba(224,138,130,.15),rgba(224,138,130,.03))}
+  .vchip.dead{--c-ink:var(--amber-soft);--c-line:rgba(230,184,92,.42);--c-bg:linear-gradient(160deg,rgba(230,184,92,.14),rgba(230,184,92,.03))}
+
+  /* ===== Sections ===== */
+  section.block{padding:clamp(54px,8vw,96px) 0;position:relative}
+  .sec-head{text-align:center;max-width:62ch;margin:0 auto clamp(36px,5vw,56px)}
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;color:var(--teal);
+    font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;margin-bottom:16px;
+  }
+  .kicker::before{content:"";width:22px;height:1px;background:linear-gradient(90deg,transparent,var(--teal))}
+  .kicker::after{content:"";width:22px;height:1px;background:linear-gradient(90deg,var(--teal),transparent)}
+  h2.sec-title{
+    font-size:clamp(27px,3.8vw,42px);font-weight:700;letter-spacing:-0.03em;line-height:1.1;
+  }
+  h2.sec-title .serif{font-family:'Newsreader',Georgia,serif;font-style:italic;font-weight:500;color:var(--gold-soft)}
+  .sec-sub{color:var(--muted);font-size:16px;margin-top:16px;line-height:1.6}
+
+  /* ===== Problem cards ===== */
+  .prob-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .prob{
+    border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);
+    backdrop-filter:blur(10px);padding:26px 24px;
+    transition:transform .35s cubic-bezier(.2,.7,.3,1), border-color .35s;
+  }
+  .prob:hover{transform:translateY(-4px);border-color:rgba(224,138,130,.35)}
+  .prob .ic{
+    width:42px;height:42px;border-radius:11px;display:grid;place-items:center;margin-bottom:18px;
+    background:rgba(224,138,130,.1);border:1px solid rgba(224,138,130,.26);
+  }
+  .prob .ic svg{width:21px;height:21px;stroke:var(--red-soft);stroke-width:1.8;fill:none}
+  .prob h3{font-size:17px;font-weight:650;letter-spacing:-0.01em;margin-bottom:9px}
+  .prob p{color:var(--muted);font-size:14px;line-height:1.6}
+  .prob p b{color:var(--ink-soft);font-weight:600}
+  .prob-foot{
+    text-align:center;margin-top:38px;color:var(--ink-soft);font-size:clamp(17px,2.2vw,21px);
+    font-family:'Newsreader',Georgia,serif;font-style:italic;font-weight:500;max-width:50ch;margin-left:auto;margin-right:auto;
+  }
+  .prob-foot b{font-style:normal;color:var(--gold-soft);font-weight:600}
+
+  /* ===== How it works ===== */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;position:relative}
+  .step{
+    position:relative;border:1px solid var(--line);border-radius:var(--radius);
+    background:var(--surface);backdrop-filter:blur(12px);padding:30px 26px 28px;
+    transition:transform .35s cubic-bezier(.2,.7,.3,1), border-color .35s;
+  }
+  .step:hover{transform:translateY(-4px);border-color:var(--line-strong)}
+  .step .num{
+    font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:var(--teal);
+    display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;
+    background:rgba(90,214,196,.08);border:1px solid rgba(90,214,196,.24);margin-bottom:20px;
+  }
+  .step h3{font-size:19px;font-weight:650;letter-spacing:-0.02em;margin-bottom:10px}
+  .step p{color:var(--muted);font-size:14.5px;line-height:1.6}
+  .step p b{color:var(--ink-soft);font-weight:600}
+  .step .tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:18px}
+  .step .tags .t{
+    font-size:11px;font-weight:600;letter-spacing:.02em;
+    padding:5px 10px;border-radius:100px;color:var(--teal);
+    background:rgba(90,214,196,.07);border:1px solid rgba(90,214,196,.2);
+  }
+
+  /* ===== Proof ===== */
+  .proof{
+    border:1px solid var(--line-strong);border-radius:22px;overflow:hidden;position:relative;
+    background:linear-gradient(180deg,#0c1219,#0a0e15);
+    box-shadow:var(--shadow);
+  }
+  .proof::before{
+    content:"";position:absolute;top:0;left:0;right:0;height:3px;
+    background:linear-gradient(90deg,transparent,rgba(90,214,196,.5),rgba(216,184,120,.7),rgba(90,214,196,.5),transparent);
+  }
+  .proof-inner{
+    display:grid;grid-template-columns:1.1fr 1fr;gap:clamp(28px,4vw,56px);align-items:center;
+    padding:clamp(34px,5vw,56px);
+  }
+  .proof .big-num{
+    font-size:clamp(64px,11vw,128px);font-weight:800;line-height:.9;letter-spacing:-0.05em;
+    background:linear-gradient(150deg,#eee0c0,#d8b878 55%,#5ad6c4);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  }
+  .proof .big-label{color:var(--ink-soft);font-size:18px;font-weight:600;margin-top:6px;letter-spacing:-0.01em}
+  .proof .big-sub{color:var(--muted);font-size:14.5px;margin-top:12px;max-width:40ch;line-height:1.6}
+  .proof-list{list-style:none;display:flex;flex-direction:column;gap:14px}
+  .proof-list li{position:relative;padding-left:34px;color:var(--ink-soft);font-size:15px;line-height:1.55}
+  .proof-list li .rx{
+    position:absolute;left:0;top:1px;width:22px;height:22px;border-radius:7px;display:grid;place-items:center;
+    background:rgba(224,138,130,.12);border:1px solid rgba(224,138,130,.32);
+  }
+  .proof-list li .rx svg{width:12px;height:12px;stroke:var(--red-soft);stroke-width:2.6;fill:none}
+  .proof-list li b{color:var(--ink);font-weight:600}
+
+  /* ===== Sample verdict ===== */
+  .sample-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:880px;margin:0 auto}
+  .vcard{
+    position:relative;overflow:hidden;border-radius:18px;padding:26px;
+    border:1px solid var(--vc-line);background:var(--vc-bg);
+    box-shadow:0 1px 0 rgba(255,255,255,.05) inset, 0 22px 55px -28px var(--vc-glow);
+    transition:transform .35s cubic-bezier(.2,.7,.3,1);
+  }
+  .vcard:hover{transform:translateY(-4px)}
+  .badge-shimmer::after{
+    content:"";position:absolute;top:0;left:-60%;width:55%;height:100%;
+    background:linear-gradient(105deg,transparent,rgba(255,255,255,.10),transparent);
+    transform:skewX(-18deg);animation:shimmer 5s ease-in-out infinite;
+  }
+  @keyframes shimmer{0%{left:-60%}55%{left:140%}100%{left:140%}}
+  .vcard .vc-top{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+  .vcard .ring{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;flex:none;
+    background:var(--vc-chip);border:1px solid var(--vc-line)}
+  .vcard .ring svg{width:24px;height:24px;stroke:var(--vc-ink);stroke-width:2.4;fill:none}
+  .vcard .vc-word{font-size:24px;font-weight:800;letter-spacing:.01em;line-height:1.05;color:var(--vc-ink)}
+  .vcard .vc-word small{display:block;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:5px}
+  .vcard .vc-reason{color:var(--ink-soft);font-size:14px;line-height:1.55;border-top:1px solid var(--line);padding-top:16px}
+  .vcard .vc-reason b{color:var(--ink);font-weight:600}
+  .vcard .vc-metrics{display:flex;gap:18px;margin-top:18px;flex-wrap:wrap}
+  .vcard .vm{font-size:12px;color:var(--muted-2)}
+  .vcard .vm b{display:block;font:600 18px 'JetBrains Mono',monospace;color:var(--ink);margin-top:3px}
+  .vcard.real{--vc-ink:var(--green-soft);--vc-line:rgba(98,201,138,.4);--vc-chip:rgba(98,201,138,.14);--vc-glow:rgba(98,201,138,.4);--vc-bg:linear-gradient(160deg,rgba(98,201,138,.12),rgba(98,201,138,.03))}
+  .vcard.self{--vc-ink:var(--red-soft);--vc-line:rgba(224,138,130,.42);--vc-chip:rgba(224,138,130,.14);--vc-glow:rgba(224,138,130,.42);--vc-bg:linear-gradient(160deg,rgba(224,138,130,.13),rgba(224,138,130,.03))}
+  .sample-note{text-align:center;color:var(--muted-2);font-size:13px;margin-top:26px}
+
+  /* ===== Pricing ===== */
+  .price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;align-items:stretch}
+  .plan{
+    display:flex;flex-direction:column;
+    border:1px solid var(--line);border-radius:18px;background:var(--surface);
+    backdrop-filter:blur(12px);padding:30px 28px;position:relative;
+    transition:transform .35s cubic-bezier(.2,.7,.3,1), border-color .35s;
+  }
+  .plan:hover{transform:translateY(-4px);border-color:var(--line-strong)}
+  .plan.feat{
+    border-color:rgba(216,184,120,.4);
+    background:radial-gradient(120% 80% at 50% 0%, rgba(216,184,120,.08), transparent 60%), var(--surface-2);
+    box-shadow:0 24px 60px -30px rgba(216,184,120,.4);
+  }
+  .plan .tier{font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .plan.feat .tier{color:var(--gold-soft)}
+  .plan .ribbon{
+    position:absolute;top:-11px;left:50%;transform:translateX(-50%);
+    font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#1a1206;
+    padding:5px 14px;border-radius:100px;background:linear-gradient(180deg,#eee0c0,#d8b878);
+    box-shadow:0 8px 20px -8px rgba(216,184,120,.6);
+  }
+  .plan .price{margin:16px 0 4px;display:flex;align-items:baseline;gap:4px}
+  .plan .price .amt{font-size:42px;font-weight:700;letter-spacing:-0.03em;line-height:1}
+  .plan .price .per{color:var(--muted);font-size:14px;font-weight:500}
+  .plan .price-sub{color:var(--muted-2);font-size:13px;min-height:18px}
+  .plan ul{list-style:none;margin:22px 0 26px;display:flex;flex-direction:column;gap:12px;flex:1}
+  .plan ul li{position:relative;padding-left:28px;color:var(--ink-soft);font-size:14px;line-height:1.5}
+  .plan ul li svg{position:absolute;left:0;top:3px;width:16px;height:16px;stroke:var(--teal);stroke-width:2.4;fill:none}
+  .plan ul li.off{color:var(--muted-2)}
+  .plan ul li.off svg{stroke:var(--muted-2)}
+  .plan .btn{width:100%}
+  .price-foot{text-align:center;color:var(--muted-2);font-size:13px;margin-top:24px}
+
+  /* ===== Disclaimer ===== */
+  .disclaimer{
+    max-width:880px;margin:0 auto;
+    border:1px solid rgba(216,184,120,.26);border-radius:var(--radius);
+    background:radial-gradient(100% 120% at 0% 0%, rgba(216,184,120,.06), transparent 60%), var(--surface);
+    backdrop-filter:blur(10px);padding:30px 32px;
+  }
+  .disclaimer .d-h{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .disclaimer .d-h .ic{width:34px;height:34px;border-radius:9px;flex:none;display:grid;place-items:center;background:rgba(216,184,120,.12);border:1px solid rgba(216,184,120,.3)}
+  .disclaimer .d-h .ic svg{width:18px;height:18px;stroke:var(--gold);stroke-width:1.8;fill:none}
+  .disclaimer .d-h h3{font-size:17px;font-weight:600;letter-spacing:-0.01em;color:var(--gold-soft)}
+  .disclaimer p{font-size:13.5px;color:var(--ink-soft);line-height:1.7}
+  .disclaimer p + p{margin-top:11px}
+  .disclaimer p b{color:var(--gold-soft);font-weight:600}
+
+  /* ===== Final CTA ===== */
+  .final{
+    text-align:center;border:1px solid var(--line-strong);border-radius:24px;position:relative;overflow:hidden;
+    background:
+      radial-gradient(80% 120% at 50% 0%, rgba(31,131,119,.18), transparent 60%),
+      radial-gradient(60% 100% at 50% 110%, rgba(216,184,120,.1), transparent 60%),
+      linear-gradient(180deg,#0c1219,#0a0e15);
+    padding:clamp(46px,7vw,80px) clamp(24px,5vw,48px);
+    box-shadow:var(--shadow);
+  }
+  .final::before{
+    content:"";position:absolute;top:0;left:0;right:0;height:3px;
+    background:linear-gradient(90deg,transparent,rgba(90,214,196,.5),rgba(216,184,120,.7),rgba(90,214,196,.5),transparent);
+  }
+  .final h2{font-size:clamp(28px,4.6vw,48px);font-weight:700;letter-spacing:-0.03em;line-height:1.08;max-width:18ch;margin:0 auto}
+  .final h2 .serif{font-family:'Newsreader',Georgia,serif;font-style:italic;font-weight:500;color:var(--gold-soft)}
+  .final p{color:var(--ink-soft);font-size:17px;margin:20px auto 0;max-width:54ch}
+  .final-cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:34px}
+  /* email capture */
+  .email-cap{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px}
+  .email-cap input{
+    width:min(320px,80vw);padding:14px 16px;border-radius:12px;border:1px solid var(--line-strong);
+    background:#0b121a;color:var(--ink);font:15px Inter;outline:none;transition:border-color .25s;
+  }
+  .email-cap input:focus{border-color:rgba(90,214,196,.5)}
+  .email-cap .note{flex-basis:100%;color:var(--muted-2);font-size:12.5px;margin-top:8px}
+  .email-cap .ok{color:var(--green-soft)}
+
+  /* ===== Footer ===== */
+  footer.site{
+    border-top:1px solid var(--line);margin-top:clamp(54px,8vw,90px);
+    padding:36px 0 44px;
+  }
+  .foot-inner{display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap}
+  .foot-inner .f-left{display:flex;align-items:center;gap:11px;color:var(--muted);font-size:13.5px}
+  .foot-inner .f-left b{color:var(--ink-soft);font-weight:600}
+  .foot-links{display:flex;gap:22px;flex-wrap:wrap}
+  .foot-links a{color:var(--muted);font-size:13.5px;transition:color .2s}
+  .foot-links a:hover{color:var(--ink)}
+  .foot-fine{color:var(--muted-2);font-size:12px;margin-top:22px;max-width:80ch;line-height:1.6}
+
+  /* ===== Reveal ===== */
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .7s cubic-bezier(.2,.7,.3,1), transform .7s cubic-bezier(.2,.7,.3,1)}
+  .reveal.in{opacity:1;transform:none}
+
+  /* ===== Responsive ===== */
+  @media(max-width:880px){
+    .prob-grid,.steps,.price-grid{grid-template-columns:1fr}
+    .proof-inner{grid-template-columns:1fr;text-align:center}
+    .proof-list{text-align:left;max-width:440px;margin:0 auto}
+    .sample-grid{grid-template-columns:1fr}
+    .plan.feat{order:-1}
+  }
+</style>
+</head>
+<body>
+
+<div class="nav-shell" id="navShell">
+  <nav>
+    <a class="logo" href="#top" aria-label="Basis isitalpha home">
+      <span class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 14l5-5 4 4 7-7" stroke="#5ad6c4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+      Basis <span>· isitalpha</span>
+    </a>
+    <div class="nav-links">
+      <a class="lnk" href="#problem">The problem</a>
+      <a class="lnk" href="#how">How it works</a>
+      <a class="lnk" href="#pricing">Pricing</a>
+      <a class="btn btn-ghost" href="/validate" style="padding:10px 18px;font-size:14px">Validate free</a>
+    </div>
+  </nav>
+</div>
+
+<a id="top"></a>
+
+<!-- ================= HERO ================= -->
+<header class="hero wrap">
+  <span class="eyebrow"><span class="pip" aria-hidden="true"></span> Honest out-of-sample validation · information only</span>
+  <h1>Is your strategy <span class="serif">real</span> — or self-deception?</h1>
+  <p class="sub">A beautiful backtest is easy. Surviving reality is not. Upload your strategy's returns and our honest gauntlet returns a verdict — <b>REAL, SELF-DECEPTION, or DEAD</b> — with the exact reason. A free AI will flatter your overfit. We'll tell you the truth before the market charges you for it.</p>
+  <div class="hero-cta">
+    <a class="btn btn-gold btn-lg" href="/validate">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Validate free
+    </a>
+    <a class="btn btn-ghost btn-lg" href="#how">See how it works</a>
+  </div>
+  <div class="hero-meta">
+    <span><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg> No card for your first check</span>
+    <span><svg viewBox="0 0 24 24"><path d="M12 2l8 4v5c0 5-3.5 8.5-8 11-4.5-2.5-8-6-8-11V6l8-4z" stroke-linejoin="round"/></svg> We never hold funds or trade</span>
+    <span><svg viewBox="0 0 24 24"><path d="M3 12h4l3-9 4 18 3-9h4" stroke-linecap="round" stroke-linejoin="round"/></svg> Same engine that retired 24 strategies</span>
+  </div>
+  <div class="hero-chips" aria-hidden="true">
+    <span class="vchip real"><span class="dot"></span>REAL <small>survives honest OOS</small></span>
+    <span class="vchip self"><span class="dot"></span>SELF-DECEPTION <small>looks real, isn't</small></span>
+    <span class="vchip dead"><span class="dot"></span>DEAD <small>no surviving edge</small></span>
+  </div>
+</header>
+
+<!-- ================= PROBLEM ================= -->
+<section class="block wrap" id="problem">
+  <div class="sec-head reveal">
+    <span class="kicker">The problem</span>
+    <h2 class="sec-title">Your backtest <span class="serif">lies</span>.</h2>
+    <p class="sec-sub">Not on purpose. A curve that climbs cleanly is the single most convincing thing in trading — and the easiest to fake by accident. Three quiet killers do most of the damage.</p>
+  </div>
+  <div class="prob-grid">
+    <div class="prob reveal">
+      <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 16V9M12 16V6M16 16v-4M20 16v-7" stroke-linecap="round"/><path d="M3 21l4-4" stroke-linecap="round" opacity=".5"/></svg></span>
+      <h3>Survivorship</h3>
+      <p>You test on the assets and periods that <b>made it to today</b>. The blow-ups that quietly delisted never entered your data — so your edge looks safer than the world ever was.</p>
+    </div>
+    <div class="prob reveal">
+      <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 4-6 5 4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" opacity=".35"/></svg></span>
+      <h3>Overfitting</h3>
+      <p>Tune enough parameters and you stop modelling the market and start <b>memorising the noise</b>. The result is gorgeous in-sample and helpless the moment new data arrives.</p>
+    </div>
+    <div class="prob reveal">
+      <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10" stroke-linecap="round"/><path d="M16 16l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <h3>Multiple testing</h3>
+      <p>Try 200 ideas and one will look brilliant by <b>pure luck</b>. Without a penalty for how many you tried, the winner you fell in love with is often just the loudest coin flip.</p>
+    </div>
+  </div>
+  <p class="prob-foot reveal">The chart feels like proof. <b>It isn't.</b> Real money is where the illusion gets billed to you.</p>
+</section>
+
+<!-- ================= HOW IT WORKS ================= -->
+<section class="block wrap" id="how">
+  <div class="sec-head reveal">
+    <span class="kicker">How it works</span>
+    <h2 class="sec-title">One paste. One honest <span class="serif">gauntlet</span>. One verdict.</h2>
+    <p class="sec-sub">No setup, no integration, no access to your account. Just your return series and an honest answer in seconds.</p>
+  </div>
+  <div class="steps">
+    <div class="step reveal">
+      <span class="num">01</span>
+      <h3>Paste your returns</h3>
+      <p>Drop in your strategy's per-period returns and how many variants you tested to find it. <b>Nothing connected, nothing custodial.</b> It's just numbers in.</p>
+      <div class="tags"><span class="t">Returns series</span><span class="t">Trials count</span></div>
+    </div>
+    <div class="step reveal">
+      <span class="num">02</span>
+      <h3>Run the honest gauntlet</h3>
+      <p>We re-test it the way reality will — net of costs, across purged splits, and against a bar raised for every variant you tried. <b>No re-tuning until it passes.</b></p>
+      <div class="tags">
+        <span class="t">Purged-CV</span><span class="t">Deflated-Sharpe</span><span class="t">Costs &amp; slippage</span><span class="t">Tail / CVaR</span>
+      </div>
+    </div>
+    <div class="step reveal">
+      <span class="num">03</span>
+      <h3>Get verdict + certificate</h3>
+      <p>A clear <b>REAL · SELF-DECEPTION · DEAD</b> verdict with the precise reason, the numbers behind it, and a clean report you can keep or share.</p>
+      <div class="tags"><span class="t">Plain-language reason</span><span class="t">Shareable report</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PROOF ================= -->
+<section class="block wrap">
+  <div class="proof reveal">
+    <div class="proof-inner">
+      <div>
+        <div class="big-num">24</div>
+        <div class="big-label">strategies we retired — that looked great.</div>
+        <p class="big-sub">We didn't build this to sell hope. We built it to kill our own bad ideas before they cost us. The same engine now runs on yours, held to exactly the same standard.</p>
+      </div>
+      <ul class="proof-list">
+        <li><span class="rx" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg></span>Gross Sharpe <b>2.1</b> that collapsed to <b>0.4</b> once fees, funding and slippage were counted.</li>
+        <li><span class="rx" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg></span>A smooth equity curve hiding a <b>brutal left tail</b> the average quietly buried.</li>
+        <li><span class="rx" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg></span>A "winner" picked from <b>dozens of trials</b> that never cleared the deflated-Sharpe bar.</li>
+        <li><span class="rx" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg></span>A backtest that <b>broke on a single shifted fold</b> — fragile, not robust.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SAMPLE VERDICT ================= -->
+<section class="block wrap">
+  <div class="sec-head reveal">
+    <span class="kicker">Sample verdict</span>
+    <h2 class="sec-title">Two strategies. One <span class="serif">honest</span> answer each.</h2>
+    <p class="sec-sub">This is what comes back — a verdict you can act on, not a wall of numbers you have to interpret.</p>
+  </div>
+  <div class="sample-grid">
+    <div class="vcard self badge-shimmer reveal">
+      <div class="vc-top">
+        <span class="ring" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg></span>
+        <div class="vc-word">SELF-DECEPTION<small>Looks real, isn't</small></div>
+      </div>
+      <p class="vc-reason">Gross numbers look outstanding — but the edge <b>does not survive</b> once costs and multiple-testing are honestly accounted for.</p>
+      <div class="vc-metrics">
+        <div class="vm">Net Sharpe<b>0.4</b></div>
+        <div class="vm">Worst CV fold<b>-1.2</b></div>
+        <div class="vm">Deflated bar<b>2.81</b></div>
+      </div>
+    </div>
+    <div class="vcard real badge-shimmer reveal">
+      <div class="vc-top">
+        <span class="ring" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <div class="vc-word">REAL<small>Survives honest OOS</small></div>
+      </div>
+      <p class="vc-reason">The edge <b>holds net of costs</b>, stays positive across every purged fold, and clears the deflated-Sharpe bar for the trials you ran.</p>
+      <div class="vc-metrics">
+        <div class="vm">Net Sharpe<b>1.6</b></div>
+        <div class="vm">Worst CV fold<b>0.7</b></div>
+        <div class="vm">Deflated bar<b>1.42</b></div>
+      </div>
+    </div>
+  </div>
+  <p class="sample-note">Illustrative examples. Every verdict is probabilistic and carries the same honest caveats described below.</p>
+</section>
+
+<!-- ================= PRICING ================= -->
+<section class="block wrap" id="pricing">
+  <div class="sec-head reveal">
+    <span class="kicker">Pricing</span>
+    <h2 class="sec-title">Start free. Pay only when it's <span class="serif">worth it</span>.</h2>
+    <p class="sec-sub">One check is on us. The day an honest verdict saves you a single bad deployment, the rest pays for itself many times over.</p>
+  </div>
+  <div class="price-grid">
+    <div class="plan reveal">
+      <div class="tier">Free</div>
+      <div class="price"><span class="amt">$0</span></div>
+      <div class="price-sub">One honest check, no card.</div>
+      <ul>
+        <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> 1 full validation</li>
+        <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Verdict + plain-language reason</li>
+        <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Core metrics on screen</li>
+        <li class="off"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg> No saved report</li>
+      </ul>
+      <a class="btn btn-ghost" href="/validate">Validate free</a>
+    </div>
+
+    <div class="plan feat reveal">
+      <span class="ribbon">Most popular</span>
+      <div class="tier">Pro</div>
+      <div class="price"><span class="amt">$29</span><span class="per">/mo</span></div>
+      <div class="price-sub">Unlimited checks + full reports.</div>
+      <ul>
+        <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> <b>Unlimited</b> validations</li>
+        <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Full report + shareable certificate</li>
+        <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Every metric: purged-CV, deflated-Sharpe, CVaR</li>
+        <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> PDF export &amp; version history</li>
+      </ul>
+      <a class="btn btn-gold" href="/validate">Start with Pro</a>
+    </div>
+
+    <div class="plan reveal">
+      <div class="tier">Pay-per-check</div>
+      <div class="price"><span class="amt">$9</span><span class="per">/check</span></div>
+      <div class="price-sub">For the occasional verdict.</div>
+      <ul>
+        <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> 1 full validation</li>
+        <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Full report + certificate</li>
+        <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> PDF export</li>
+        <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> No subscription</li>
+      </ul>
+      <a class="btn btn-ghost" href="/validate">Buy a check</a>
+    </div>
+  </div>
+  <p class="price-foot">Cancel anytime. No funds held, no trades executed, no lock-in. This is information — you keep every decision.</p>
+</section>
+
+<!-- ================= DISCLAIMER ================= -->
+<section class="block wrap">
+  <div class="disclaimer reveal">
+    <div class="d-h">
+      <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v.5M12 11.5v5" stroke-linecap="round"/></svg></span>
+      <h3>Informational analysis only</h3>
+    </div>
+    <p>isitalpha provides <b>informational analysis only</b>. It is not investment advice, not a recommendation, not an offer or solicitation, and not asset management. Nothing here is a suggestion to adopt, deploy, fund, continue, or abandon any strategy. We make <b>no promise of profit</b> of any kind.</p>
+    <p><b>Past performance does not guarantee future results.</b> Every verdict is probabilistic and rests on the return series you supply and on assumptions about costs, funding and execution that may not match your real conditions. A "REAL" verdict is not a certification of future profitability; a "DEAD" or "SELF-DECEPTION" verdict does not prove a strategy cannot work. Survivorship, data-quality, look-ahead and regime-change caveats apply.</p>
+    <p>You are solely responsible for your own decisions. Trading involves the risk of loss, including loss of capital. <b>We never hold client funds and never execute trades on your behalf.</b> Consider seeking advice from a licensed professional in your jurisdiction before acting.</p>
+  </div>
+</section>
+
+<!-- ================= FINAL CTA ================= -->
+<section class="block wrap">
+  <div class="final reveal">
+    <h2>Find out before the <span class="serif">market</span> does.</h2>
+    <p>The market will tell you the truth eventually — and charge you for the lesson. Get the honest verdict first. Your first check is free.</p>
+    <div class="final-cta">
+      <a class="btn btn-gold btn-lg" href="/validate">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Validate free
+      </a>
+      <a class="btn btn-ghost btn-lg" href="#pricing">See pricing</a>
+    </div>
+    <form class="email-cap" id="emailForm" novalidate>
+      <input type="email" id="emailIn" placeholder="Or drop your email for the launch list" aria-label="Email address">
+      <button class="btn btn-ghost" type="submit">Notify me</button>
+      <div class="note" id="emailNote">No spam. One email when new edges and features ship. Information only — never advice.</div>
+    </form>
+  </div>
+</section>
+
+<!-- ================= FOOTER ================= -->
+<footer class="site wrap">
+  <div class="foot-inner">
+    <div class="f-left">
+      <span class="mark" aria-hidden="true" style="display:inline-grid;place-items:center;width:24px;height:24px;border-radius:7px;background:linear-gradient(150deg,#1f8377,#0d3b36);border:1px solid rgba(90,214,196,.4)">
+        <svg viewBox="0 0 24 24" fill="none" width="13" height="13"><path d="M4 14l5-5 4 4 7-7" stroke="#5ad6c4" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+      <span><b>Basis</b> · isitalpha · informational analysis, not investment advice</span>
+    </div>
+    <div class="foot-links">
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="/validate">Validate</a>
+    </div>
+  </div>
+  <p class="foot-fine">isitalpha is an analytics tool. It does not hold client funds, does not execute trades, and does not provide investment advice or recommendations. Verdicts are probabilistic and based on data you provide; past performance does not guarantee future results. Trading involves the risk of loss. © 2026 Basis.</p>
+</footer>
+
+<script>
+  // sticky nav border on scroll
+  var shell = document.getElementById('navShell');
+  function onScroll(){ shell.classList.toggle('scrolled', window.scrollY > 8); }
+  onScroll(); window.addEventListener('scroll', onScroll, {passive:true});
+
+  // scroll reveal
+  (function(){
+    if('IntersectionObserver' in window){
+      var io = new IntersectionObserver(function(entries){
+        entries.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
+      },{threshold:.12, rootMargin:'0px 0px -40px 0px'});
+      document.querySelectorAll('.reveal').forEach(function(el,i){
+        el.style.transitionDelay = (Math.min(i%3,2)*0.08) + 's';
+        io.observe(el);
+      });
+    } else {
+      document.querySelectorAll('.reveal').forEach(function(el){ el.classList.add('in'); });
+    }
+  })();
+
+  // optional email capture -> localStorage (no backend)
+  (function(){
+    var form = document.getElementById('emailForm');
+    var input = document.getElementById('emailIn');
+    var note = document.getElementById('emailNote');
+    if(!form) return;
+    try{
+      var saved = localStorage.getItem('hv_launch_email');
+      if(saved){ input.value = saved; note.innerHTML = '<span class="ok">You’re on the list — we’ll be in touch.</span>'; }
+    }catch(_){}
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      var v = (input.value||'').trim();
+      var ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+      if(!ok){ note.textContent = 'Please enter a valid email address.'; return; }
+      try{ localStorage.setItem('hv_launch_email', v); }catch(_){}
+      note.innerHTML = '<span class="ok">Thanks — you’re on the launch list. Information only, never advice.</span>';
+    });
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Basis — Honest Strategy Validator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#080b11;--surface:rgba(255,255,255,.025);--surface-2:rgba(255,255,255,.045);
+    --line:rgba(255,255,255,.08);--line-strong:rgba(255,255,255,.14);--ink:#f3f5f8;--ink-soft:#c4ccd6;
+    --muted:#8b94a3;--muted-2:#69727f;--teal:#5ad6c4;--teal-deep:#1f8377;--gold:#d8b878;--green:#62c98a;--amber:#e3b95e;--red:#e08a82;--radius:16px}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6;
+    -webkit-font-smoothing:antialiased;letter-spacing:-.011em;min-height:100vh}
+  body::before{content:"";position:fixed;inset:0;z-index:-2;background:
+    radial-gradient(60% 50% at 15% 0%,rgba(31,131,119,.14),transparent 60%),
+    radial-gradient(50% 45% at 90% 5%,rgba(216,184,120,.08),transparent 62%)}
+  .wrap{max-width:680px;margin:0 auto;padding:0 24px}
+  nav{display:flex;justify-content:space-between;align-items:center;padding:18px 24px;max-width:980px;margin:0 auto}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:-.02em}
+  .logo .mark{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;background:linear-gradient(150deg,#1f8377,#0d3b36);border:1px solid rgba(90,214,196,.4)}
+  .logo span{color:#e8d3a3}
+  .head{padding:28px 0 6px}
+  h1{font-size:27px;font-weight:700;letter-spacing:-.02em}
+  .lead{color:var(--muted);font-size:15px;margin-top:6px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:24px;margin-top:22px}
+  label{display:block;font-size:13px;font-weight:600;color:var(--ink-soft);margin:0 0 8px}
+  textarea{width:100%;min-height:150px;padding:14px;border-radius:12px;border:1px solid var(--line-strong);
+    background:#0b121a;color:var(--ink);font:14px 'JetBrains Mono',monospace;outline:none;resize:vertical}
+  textarea:focus{border-color:rgba(90,214,196,.5)}
+  .row{display:flex;gap:14px;align-items:flex-end;margin-top:14px;flex-wrap:wrap}
+  .row .f{flex:1;min-width:140px}
+  input[type=number]{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line-strong);background:#0b121a;color:var(--ink);font:15px Inter}
+  .hint{color:var(--muted-2);font-size:12px;margin-top:6px}
+  .btn{background:linear-gradient(180deg,#eee0c0,#d8b878);color:#1a1206;font-weight:650;padding:13px 24px;border-radius:11px;border:0;cursor:pointer;font-size:15px}
+  .btn:hover{filter:brightness(1.04)} .btn:disabled{opacity:.6}
+  .result{margin-top:20px;display:none}
+  .verdict{padding:18px 20px;border-radius:14px;font-size:17px;font-weight:700}
+  .v-REAL{background:rgba(98,201,138,.12);border:1px solid var(--green);color:#bfeacb}
+  .v-SELF-DECEPTION,.v-DEAD{background:rgba(224,138,130,.12);border:1px solid var(--red);color:#f0c9c5}
+  .v-BORDERLINE,.v-INSUFFICIENT{background:rgba(227,185,94,.12);border:1px solid var(--amber);color:#f1dca8}
+  .reasons{margin-top:14px;padding-left:0;list-style:none}
+  .reasons li{padding:7px 0 7px 22px;position:relative;color:var(--ink-soft);font-size:14px}
+  .reasons li:before{content:"›";position:absolute;left:4px;color:var(--teal)}
+  .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}
+  .metric{background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:13px}
+  .metric .l{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.04em}
+  .metric .v{font:600 18px 'JetBrains Mono',monospace;margin-top:5px}
+  .disc{color:var(--muted-2);font-size:12px;margin-top:18px}
+  @media(max-width:560px){.metrics{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo"><span class="mark"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 14h4l3-8 3 12 2-6h2" stroke="#5ad6c4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Basis<span>.</span></div>
+  <div style="color:var(--muted);font-size:13px">isitalpha</div>
+</nav>
+
+<div class="wrap">
+  <div class="head">
+    <h1>Is your strategy real — or self-deception?</h1>
+    <div class="lead">Paste your strategy's per-period returns. We run the same honest gauntlet that killed ~24 strategies that looked great and weren't.</div>
+  </div>
+
+  <div class="card">
+    <label>Returns (one per line, or comma-separated). Percent or fraction — we detect it.</label>
+    <textarea id="returns" placeholder="0.012&#10;-0.004&#10;0.008&#10;0.015&#10;... (30+ values)"></textarea>
+    <div class="row">
+      <div class="f">
+        <label>How many strategies did you test to find this one?</label>
+        <input id="n_trials" type="number" value="10" min="1">
+        <div class="hint">More tried = higher bar (multiple-testing penalty).</div>
+      </div>
+      <button class="btn" id="btn" onclick="run()">Get honest verdict</button>
+    </div>
+    <div class="result" id="result"></div>
+    <div class="disc">Purged cross-validation · deflated Sharpe · costs · tail/CVaR. Information only — not investment advice.</div>
+  </div>
+</div>
+
+<script>
+  async function run(){
+    const btn=document.getElementById("btn"), res=document.getElementById("result");
+    btn.disabled=true; res.style.display="none";
+    const payload={returns:document.getElementById("returns").value, n_trials:document.getElementById("n_trials").value};
+    let j;
+    try{ j=await (await fetch("/api/validate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)})).json(); }
+    catch(_){ btn.disabled=false; res.style.display="block"; res.innerHTML='<div class="verdict v-DEAD">Network error</div>'; return; }
+    btn.disabled=false;
+    if(j.verdict==="INSUFFICIENT"){
+      res.style.display="block";
+      res.innerHTML='<div class="verdict v-INSUFFICIENT">⚠️ '+(j.reason||"need more data")+'</div>'; return;
+    }
+    const m=(l,v)=>'<div class="metric"><div class="l">'+l+'</div><div class="v">'+v+'</div></div>';
+    res.style.display="block";
+    res.innerHTML=
+      '<div class="verdict v-'+j.verdict+'">'+j.headline+'</div>'+
+      '<ul class="reasons">'+(j.reasons||[]).map(r=>'<li>'+r+'</li>').join('')+'</ul>'+
+      '<div class="metrics">'+
+        m("Net Sharpe", j.net_sharpe)+
+        m("Worst CV fold", j.cv_worst_fold)+
+        m("Deflated bar", j.deflated_threshold)+
+        m("Max drawdown", (j.max_drawdown*100).toFixed(0)+"%")+
+        m("CVaR", (j.cvar*100).toFixed(1)+"%")+
+        m("Tail-adj Sharpe", j.tail_adj_sharpe)+
+      '</div>'+
+      '<div class="disc">'+(j.note||"")+'</div>';
+  }
+</script>
+</body>
+</html>
