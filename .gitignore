@@ -1,3 +1,9 @@
 __pycache__/
 *.pyc
 data_cache/
+
+# секреты Pulse
+bootstrap.env
+pulse/bootstrap.env
+pulse/pulse_history.json
+pulse/pulse_offset.txt

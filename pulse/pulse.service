@@ -1,0 +1,17 @@
+[Unit]
+Description=Pulse — мост isitalpha (Telegram <-> Claude) 24/7
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/pulse
+ExecStart=/usr/bin/python3 /opt/pulse/pulse.py
+Restart=always
+RestartSec=3
+# секреты читаются из /opt/pulse/bootstrap.env (chmod 600)
+StandardOutput=append:/var/log/pulse.log
+StandardError=append:/var/log/pulse.log
+
+[Install]
+WantedBy=multi-user.target
