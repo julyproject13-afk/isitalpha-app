@@ -79,6 +79,12 @@
     <div class="lead">Paste your strategy's per-period returns. We run the same honest gauntlet that killed 5,374 strategies that looked great and weren't.</div>
   </div>
 
+  <div style="background:rgba(90,214,196,.06);border:1px solid rgba(90,214,196,.22);border-radius:14px;padding:16px 18px;margin-top:20px">
+    <div style="font-weight:650;color:#e9f6f3;font-size:14.5px">🔒 You never share your strategy — only the numbers.</div>
+    <div style="color:var(--muted);font-size:13.5px;margin-top:6px">Paste your strategy's <b style="color:var(--ink-soft)">per-period returns</b> — how much it made each day/trade/period, as a percent or a fraction. We can't see or reconstruct your logic, code, or parameters. No account, no API keys, no broker access.</div>
+    <div style="color:var(--muted-2);font-size:12.5px;margin-top:8px"><b>Where to get them:</b> export the per-period P&amp;L / return column from your backtest, trading journal, or broker statement. Example: <code style="background:rgba(255,255,255,.06);padding:1px 6px;border-radius:5px">0.012, -0.004, 0.008, 0.015 …</code> (30+ values). 1.2 or 0.012 both work — we detect percent vs fraction.</div>
+  </div>
+
   <div class="card">
     <label>Returns (one per line, or comma-separated). Percent or fraction — we detect it.</label>
     <textarea id="returns" placeholder="0.012&#10;-0.004&#10;0.008&#10;0.015&#10;... (30+ values)"></textarea>
