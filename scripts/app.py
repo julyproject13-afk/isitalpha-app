@@ -78,7 +78,8 @@ def np_create_invoice(order_id: str) -> str:
         req = urllib.request.Request(
             "https://api.nowpayments.io/v1/invoice",
             data=json.dumps(payload).encode(),
-            headers={"x-api-key": NP_API_KEY, "Content-Type": "application/json"},
+            headers={"x-api-key": NP_API_KEY, "Content-Type": "application/json",
+                     "User-Agent": "Mozilla/5.0 (isitalpha)"},
             method="POST")
         with urllib.request.urlopen(req, timeout=15) as r:
             d = json.load(r)
