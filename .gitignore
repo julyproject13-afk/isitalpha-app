@@ -7,3 +7,6 @@ bootstrap.env
 pulse/bootstrap.env
 pulse/pulse_history.json
 pulse/pulse_offset.txt
+
+# локальный учёт оплат
+paid_orders.txt

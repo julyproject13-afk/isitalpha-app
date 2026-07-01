@@ -49,6 +49,22 @@
   .metric .v{font:600 18px 'JetBrains Mono',monospace;margin-top:5px}
   .disc{color:var(--muted-2);font-size:12px;margin-top:18px}
   @media(max-width:560px){.metrics{grid-template-columns:1fr 1fr}}
+  .paywall{margin-top:16px;padding:20px;border-radius:14px;border:1px solid var(--line-strong);
+    background:linear-gradient(180deg,rgba(216,184,120,.07),rgba(255,255,255,.02))}
+  .paywall .pw-t{font-weight:700;font-size:15px;color:var(--ink)}
+  .paywall .pw-s{color:var(--muted);font-size:13.5px;margin-top:6px}
+  .paywall ul{list-style:none;margin:12px 0 4px;padding:0}
+  .paywall ul li{padding:4px 0 4px 22px;position:relative;color:var(--ink-soft);font-size:13.5px}
+  .paywall ul li:before{content:"🔒";position:absolute;left:0;font-size:12px}
+  .pw-buy{display:inline-block;background:linear-gradient(180deg,#eee0c0,#d8b878);color:#1a1206;
+    font-weight:700;padding:12px 22px;border-radius:11px;text-decoration:none;font-size:15px;margin-top:14px}
+  .pw-buy:hover{filter:brightness(1.04)}
+  .pw-key{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .pw-key input{flex:1;min-width:180px;padding:10px 12px;border-radius:10px;border:1px solid var(--line-strong);
+    background:#0b121a;color:var(--ink);font:13px 'JetBrains Mono',monospace}
+  .pw-key button{background:var(--surface-2);border:1px solid var(--line-strong);color:var(--ink-soft);
+    padding:10px 16px;border-radius:10px;cursor:pointer;font:600 13px Inter}
+  .pw-note{color:var(--muted-2);font-size:12px;margin-top:8px}
 </style>
 </head>
 <body>
@@ -80,20 +96,25 @@
 </div>
 
 <script>
+  function orderId(){ try{ return localStorage.getItem("isitalpha_order")||""; }catch(_){ return ""; } }
+
   async function run(){
     const btn=document.getElementById("btn"), res=document.getElementById("result");
     btn.disabled=true; res.style.display="none";
-    const payload={returns:document.getElementById("returns").value, n_trials:document.getElementById("n_trials").value};
+    const payload={returns:document.getElementById("returns").value,
+                   n_trials:document.getElementById("n_trials").value, order:orderId()};
     let j;
     try{ j=await (await fetch("/api/validate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)})).json(); }
     catch(_){ btn.disabled=false; res.style.display="block"; res.innerHTML='<div class="verdict v-DEAD">Network error</div>'; return; }
     btn.disabled=false;
+    res.style.display="block";
     if(j.verdict==="INSUFFICIENT"){
-      res.style.display="block";
       res.innerHTML='<div class="verdict v-INSUFFICIENT">⚠️ '+(j.reason||"need more data")+'</div>'; return;
     }
+    // FREE: только вердикт-слово + заголовок; полный отчёт — за $9 (locked)
+    if(j.locked){ res.innerHTML=lockedView(j); return; }
+    // PAID: полный отчёт
     const m=(l,v)=>'<div class="metric"><div class="l">'+l+'</div><div class="v">'+v+'</div></div>';
-    res.style.display="block";
     res.innerHTML=
       '<div class="verdict v-'+j.verdict+'">'+j.headline+'</div>'+
       '<ul class="reasons">'+(j.reasons||[]).map(r=>'<li>'+r+'</li>').join('')+'</ul>'+
@@ -107,6 +128,56 @@
       '</div>'+
       '<div class="disc">'+(j.note||"")+'</div>';
   }
+
+  function lockedView(j){
+    var pay = j.pay_ready
+      ? '<button class="pw-buy" id="buy" onclick="checkout()">Unlock full report — $'+(j.price_usd||9)+'</button>'
+      : '<div class="pw-note">Payment opens shortly.</div>';
+    return ''+
+      '<div class="verdict v-'+j.verdict+'">'+j.headline+'</div>'+
+      '<div class="paywall">'+
+        '<div class="pw-t">Your verdict is above. The full certified report is $'+(j.price_usd||9)+'.</div>'+
+        '<div class="pw-s">One-time, pay in USDT. No subscription. We never see your strategy — only the numbers you paste.</div>'+
+        '<ul>'+
+          '<li>Every reason behind the verdict</li>'+
+          '<li>Net Sharpe, worst CV fold, deflated bar</li>'+
+          '<li>Max drawdown, CVaR, tail-adjusted Sharpe</li>'+
+          '<li>Downloadable certified report with seal</li>'+
+        '</ul>'+
+        pay+
+        '<div class="pw-note" id="pay-note">Secure crypto checkout. You return here automatically after payment.</div>'+
+      '</div>';
+  }
+
+  // создать счёт → перейти на страницу оплаты (сохранив order для авто-разблокировки по возврату)
+  async function checkout(){
+    var note=document.getElementById("pay-note"), b=document.getElementById("buy");
+    if(b) b.disabled=true; note.textContent="Opening secure checkout…";
+    try{
+      var r=await (await fetch("/api/checkout",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"})).json();
+      if(r.ok && r.invoice_url){ try{ localStorage.setItem("isitalpha_order", r.order); }catch(_){}
+        window.location.href=r.invoice_url; }
+      else { if(b) b.disabled=false; note.textContent="Checkout isn't available right now — try again shortly."; }
+    }catch(_){ if(b) b.disabled=false; note.textContent="Couldn't open checkout — try again in a moment."; }
+  }
+
+  // при возврате с оплаты (?paid=order) подтверждаем и показываем полный отчёт
+  async function checkPaidReturn(){
+    var m=location.search.match(/[?&]paid=([^&]+)/);
+    if(!m) return;
+    var order=decodeURIComponent(m[1]);
+    try{ localStorage.setItem("isitalpha_order", order); }catch(_){}
+    // даём вебхуку время подтвердить оплату, затем перезапускаем отчёт
+    var res=document.getElementById("result");
+    res.style.display="block"; res.innerHTML='<div class="verdict v-BORDERLINE">Confirming your payment…</div>';
+    for(var i=0;i<10;i++){
+      try{ var r=await (await fetch("/api/unlock",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({order:order})})).json();
+        if(r.ok){ run(); return; } }catch(_){}
+      await new Promise(function(res2){ setTimeout(res2,3000); });
+    }
+    res.innerHTML='<div class="verdict v-INSUFFICIENT">Payment is still confirming. Re-run your check in a minute — it unlocks automatically.</div>';
+  }
+  window.addEventListener("load", checkPaidReturn);
 </script>
 </body>
 </html>

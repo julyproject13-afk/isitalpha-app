@@ -98,13 +98,13 @@ def validate(returns: Sequence[float], n_trials: int = 10, cost_bps: float = 5.0
              k: int = 5, embargo: int = 3, max_dd: float = 0.20, max_cvar: float = 0.05) -> Dict:
     """ЧЕСТНЫЙ ПРИГОВОР стратегии. Возвращает вердикт + метрики + конкретные причины."""
     if len(returns) < 30:
-        return {"verdict": "INSUFFICIENT", "reason": "мало данных (<30 точек) — честный CV невозможен",
+        return {"verdict": "INSUFFICIENT", "reason": "Not enough data (<30 points) — an honest CV isn't possible.",
                 "n": len(returns)}
 
     net = _apply_costs(returns, cost_bps)
     fs = fold_sharpes(net, k, embargo)
     if not fs:
-        return {"verdict": "INSUFFICIENT", "reason": "недостаточно фолдов для CV", "n": len(net)}
+        return {"verdict": "INSUFFICIENT", "reason": "Not enough folds for cross-validation.", "n": len(net)}
 
     median_sh = round(st.median(fs), 3)
     min_fold = round(min(fs), 3)
@@ -120,33 +120,33 @@ def validate(returns: Sequence[float], n_trials: int = 10, cost_bps: float = 5.0
     passed_dd = dd <= max_dd
     passed_cvar = cvar >= -max_cvar
     if not passed_cv:
-        reasons.append("худший CV-фолд %.2f < deflated-порога %.2f (не держится по всем периодам)" % (min_fold, threshold))
+        reasons.append("Worst CV fold %.2f < deflated bar %.2f — it doesn't hold across all periods." % (min_fold, threshold))
     if not passed_dd:
-        reasons.append("просадка %.0f%% > %.0f%% (хвост несовместим с сохранностью)" % (dd * 100, max_dd * 100))
+        reasons.append("Drawdown %.0f%% > %.0f%% — the tail is incompatible with capital preservation." % (dd * 100, max_dd * 100))
     if not passed_cvar:
-        reasons.append("CVaR %.1f%% хуже −%.0f%% (тяжёлый левый хвост)" % (cvar * 100, max_cvar * 100))
+        reasons.append("CVaR %.1f%% worse than −%.0f%% — heavy left tail." % (cvar * 100, max_cvar * 100))
     if gross - net_sh > 0.5:
-        reasons.append("издержки съедают край (gross %.2f → net %.2f)" % (gross, net_sh))
+        reasons.append("Costs eat the edge (gross %.2f → net %.2f)." % (gross, net_sh))
 
-    # вердикт
+    # verdict
     if passed_cv and passed_dd and passed_cvar:
         verdict = "REAL"
-        headline = "✅ Похоже на РЕАЛЬНЫЙ край — пережил честный гейт."
+        headline = "✅ Looks like a REAL edge — it survived the honest gauntlet."
     elif net_sh <= 0:
         verdict = "DEAD"
-        headline = "❌ Мёртв: нет края после издержек."
+        headline = "❌ Dead: no edge left after costs."
     elif median_sh > 0 and min_fold < 0:
         verdict = "SELF-DECEPTION"
-        headline = "🔴 САМООБМАН: работает в одни периоды, теряет в другие (переподгон/режим-зависимость)."
+        headline = "🔴 SELF-DECEPTION: works in some periods, loses in others (overfit / regime-dependent)."
     else:
         verdict = "BORDERLINE"
-        headline = "🟡 BORDERLINE: слабо/неустойчиво — не полагаться без доп. данных."
+        headline = "🟡 BORDERLINE: weak / unstable — don't rely on it without more data."
 
     return {
-        "verdict": verdict, "headline": headline, "reasons": reasons or ["прошёл все проверки"],
+        "verdict": verdict, "headline": headline, "reasons": reasons or ["Passed every check."],
         "n": len(returns), "gross_sharpe": gross, "net_sharpe": net_sh,
         "cv_median_sharpe": median_sh, "cv_worst_fold": min_fold, "deflated_threshold": threshold,
         "max_drawdown": dd, "cvar": cvar, "tail_adj_sharpe": adj, "n_trials": n_trials,
-        "note": "Survivorship: если ряд из выживших стратегий/инструментов — реальный край ещё хуже. "
-                "Не инвестиционный совет.",
+        "note": "Survivorship: if this series comes from surviving strategies/instruments, the real edge is even worse. "
+                "Not investment advice.",
     }
