@@ -40,7 +40,8 @@ _load_env()
 NP_API_KEY = os.environ.get("NP_API_KEY", "")          # ключ мерчанта NOWPayments (секрет)
 NP_IPN_SECRET = os.environ.get("NP_IPN_SECRET", "")    # секрет для проверки вебхука (секрет)
 SITE_URL = os.environ.get("SITE_URL", "https://isitalpha.com")
-PRICE_USD = int(os.environ.get("PRICE_USD", "12"))   # $12: выше минимума NOWPayments для USDT-TRC20 (~$10.74). Меняется через bootstrap.env без правки кода.
+PRICE_USD = int(os.environ.get("PRICE_USD", "12"))   # цена; меняется через bootstrap.env без правки кода.
+PAY_CURRENCY = os.environ.get("PAY_CURRENCY", "usdcmatic")   # USDC на Polygon: минимум ~$0.22, комиссия сети ~$0.01 (вместо TRON ~$3.72). Клиенту чётко: «USDC на сети Polygon».
 
 FREE_FIELDS = ("verdict", "headline", "n", "reason")
 
@@ -68,7 +69,7 @@ def np_create_invoice(order_id: str) -> str:
     if not NP_API_KEY:
         return ""
     payload = {
-        "price_amount": PRICE_USD, "price_currency": "usd", "pay_currency": "usdttrc20",
+        "price_amount": PRICE_USD, "price_currency": "usd", "pay_currency": PAY_CURRENCY,
         "order_id": order_id, "order_description": "isitalpha — Full Strategy Report",
         "success_url": f"{SITE_URL}/validate?paid={order_id}",
         "cancel_url": f"{SITE_URL}/validate",
