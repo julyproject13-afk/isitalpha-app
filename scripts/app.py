@@ -246,6 +246,12 @@ class Handler(BaseHTTPRequestHandler):
             return self._file("validate.html")
         if p == "/report":
             return self._file("report.html")
+        if p in ("/learn", "/learn/"):
+            return self._file("learn/index.html")
+        if p.startswith("/learn/"):
+            slug = "".join(c for c in p[7:].strip("/") if c.isalnum() or c == "-")
+            if slug and os.path.isfile(os.path.join(WEB, "learn", slug + ".html")):
+                return self._file("learn/" + slug + ".html")
         safe = os.path.normpath(p).lstrip("/")
         if safe and os.path.isfile(os.path.join(WEB, safe)):
             return self._file(safe)
