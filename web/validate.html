@@ -110,10 +110,10 @@
 
   <div class="card">
     <label style="display:flex;justify-content:space-between;align-items:center;gap:12px">
-      <span>Returns (one per line, or comma-separated). Percent or fraction — we detect it.</span>
-      <a onclick="loadExample()" style="color:var(--teal);font-size:12.5px;font-weight:600;cursor:pointer;text-decoration:underline;white-space:nowrap">↧ Load example</a>
+      <span>Your strategy's returns (one per line, or comma-separated). Percent or fraction — we detect it.</span>
+      <button type="button" onclick="loadExample()" style="width:auto;background:rgba(90,214,196,.14);border:1px solid rgba(90,214,196,.45);color:var(--teal);font-size:12.5px;font-weight:650;cursor:pointer;padding:5px 12px;border-radius:9px;white-space:nowrap">↧ Load example</button>
     </label>
-    <textarea id="returns" placeholder="0.012&#10;-0.004&#10;0.008&#10;0.015&#10;... (30+ values)"></textarea>
+    <textarea id="returns" autofocus placeholder="Paste your returns here — we'll do the rest. (Not sure how? Use ‘Load example’ above.)"></textarea>
     <div class="row">
       <div class="f">
         <label>How many strategies did you test to find this one?</label>
@@ -179,7 +179,7 @@
       '<div class="verdict v-'+j.verdict+'">'+j.headline+'</div>'+
       '<div class="paywall">'+
         '<div class="pw-t">Your verdict is above. The full certified report is $'+(j.price_usd||9)+'.</div>'+
-        '<div class="pw-s">One-time, pay in USDT. No subscription. We never see your strategy — only the numbers you paste.</div>'+
+        '<div class="pw-s">One-time · all fees included · pay in USDC on Polygon. No subscription, no hidden fees. We never see your strategy — only the numbers you paste.</div>'+
         '<ul>'+
           '<li>Every reason behind the verdict</li>'+
           '<li>Net Sharpe, worst CV fold, deflated bar</li>'+

@@ -13,6 +13,7 @@ import json
 import os
 import secrets as _secrets
 import sys
+import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -40,10 +41,91 @@ _load_env()
 NP_API_KEY = os.environ.get("NP_API_KEY", "")          # ключ мерчанта NOWPayments (секрет)
 NP_IPN_SECRET = os.environ.get("NP_IPN_SECRET", "")    # секрет для проверки вебхука (секрет)
 SITE_URL = os.environ.get("SITE_URL", "https://isitalpha.com")
-PRICE_USD = int(os.environ.get("PRICE_USD", "12"))   # цена; меняется через bootstrap.env без правки кода.
-PAY_CURRENCY = os.environ.get("PAY_CURRENCY", "usdcmatic")   # USDC на Polygon: минимум ~$0.22, комиссия сети ~$0.01 (вместо TRON ~$3.72). Клиенту чётко: «USDC на сети Polygon».
+PRICE_USD = int(os.environ.get("PRICE_USD", "15"))   # $15 «all fees included»; меняется через bootstrap.env без правки кода.
+PAY_CURRENCY = os.environ.get("PAY_CURRENCY", "")   # пусто = клиент сам выбирает валюту/сеть на оплате (Polygon дешевле всего). Можно форснуть через bootstrap.env (напр. usdcmatic).
+TG_TOKEN = os.environ.get("PULSE_TG_TOKEN", "")        # бот для уведомлений (тот же, что Pulse)
+OWNER_CHAT_ID = os.environ.get("OWNER_CHAT_ID", "")    # чат владельца для алертов/сводки
+REPORT_KEY = os.environ.get("REPORT_KEY", "")          # защита /api/report (простой ключ)
+METRICS_FILE = os.path.join(ROOT, "metrics.json")      # бизнес-счётчики (локально)
 
 FREE_FIELDS = ("verdict", "headline", "n", "reason")
+
+
+# ---------- бизнес-метрики (попытки/продажи/выручка) ----------
+def _metrics() -> dict:
+    try:
+        return json.load(open(METRICS_FILE, encoding="utf-8"))
+    except Exception:
+        return {"attempts": 0, "sales": 0, "revenue": 0, "first_ts": 0, "last_sale_ts": 0, "seen_orders": []}
+
+
+def _save_metrics(m: dict):
+    try:
+        json.dump(m, open(METRICS_FILE, "w"))
+    except Exception:
+        pass
+
+
+def _bump_attempt():
+    import time
+    m = _metrics()
+    m["attempts"] = m.get("attempts", 0) + 1
+    if not m.get("first_ts"):
+        m["first_ts"] = int(time.time())
+    _save_metrics(m)
+
+
+def _record_sale(order_id: str) -> dict | None:
+    """Учитывает продажу один раз на order (защита от дубля вебхука). None если уже учтён."""
+    import time
+    m = _metrics()
+    seen = set(m.get("seen_orders", []))
+    if order_id in seen:
+        return None
+    seen.add(order_id)
+    m["seen_orders"] = list(seen)[-500:]
+    m["sales"] = m.get("sales", 0) + 1
+    m["revenue"] = m.get("revenue", 0) + PRICE_USD
+    m["last_sale_ts"] = int(time.time())
+    _save_metrics(m)
+    return m
+
+
+def tg_send(text: str):
+    """Шлёт сообщение владельцу в Telegram (алерты/продажи/сводка). Тихо, не роняет запрос."""
+    if not (TG_TOKEN and OWNER_CHAT_ID):
+        return
+    try:
+        data = urllib.parse.urlencode({"chat_id": OWNER_CHAT_ID, "text": text,
+                                       "parse_mode": "HTML", "disable_web_page_preview": "true"}).encode()
+        req = urllib.request.Request(f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage",
+                                     data=data, method="POST")
+        urllib.request.urlopen(req, timeout=10).read()
+    except Exception:
+        pass
+
+
+def stats_report() -> str:
+    """Красивая бизнес-сводка для Telegram."""
+    import time
+    m = _metrics()
+    a = m.get("attempts", 0); s = m.get("sales", 0); rev = m.get("revenue", 0)
+    conv = (s / a * 100) if a else 0
+    net = round(rev * 0.99, 2)          # минус ~1% NOWPayments
+    per = f"${PRICE_USD} − ~${round(PRICE_USD*0.01,2)} комиссия = ~${round(PRICE_USD*0.99,2)} net"
+    last = m.get("last_sale_ts", 0)
+    last_s = time.strftime("%d.%m %H:%M", time.gmtime(last)) + " UTC" if last else "—"
+    return (
+        "📊 <b>isitalpha — сводка</b>\n\n"
+        f"👀 Попыток проверки: <b>{a}</b>\n"
+        f"✅ Продаж (${PRICE_USD}): <b>{s}</b>\n"
+        f"💰 Выручка: <b>${rev}</b>  (net ~${net})\n"
+        f"📈 Конверсия: <b>{conv:.1f}%</b>\n\n"
+        f"📦 Юнит-экономика: {per}\n"
+        f"🎯 CAC: добавь расход рекламы из реестра → CAC = расход/продажи\n"
+        f"🕐 Последняя продажа: {last_s}\n\n"
+        "<i>LTV пока = 1 покупка (разовый продукт). Следим за повторными и пакетами.</i>"
+    )
 
 
 # ---------- учёт оплат (простой файл; для MVP достаточно) ----------
@@ -69,12 +151,14 @@ def np_create_invoice(order_id: str) -> str:
     if not NP_API_KEY:
         return ""
     payload = {
-        "price_amount": PRICE_USD, "price_currency": "usd", "pay_currency": PAY_CURRENCY,
+        "price_amount": PRICE_USD, "price_currency": "usd",
         "order_id": order_id, "order_description": "isitalpha — Full Strategy Report",
         "success_url": f"{SITE_URL}/validate?paid={order_id}",
         "cancel_url": f"{SITE_URL}/validate",
         "ipn_callback_url": f"{SITE_URL}/api/ipn",
     }
+    if PAY_CURRENCY:                       # если задано — форсим сеть; иначе клиент выбирает сам
+        payload["pay_currency"] = PAY_CURRENCY
     try:
         req = urllib.request.Request(
             "https://api.nowpayments.io/v1/invoice",
@@ -142,6 +226,14 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         p = self.path.split("?")[0]
+        if p == "/api/report":
+            qs = urllib.parse.parse_qs(self.path.split("?", 1)[1]) if "?" in self.path else {}
+            if REPORT_KEY and qs.get("key", [""])[0] != REPORT_KEY:
+                return self._send(403, {"error": "forbidden"})
+            rep = stats_report()
+            if qs.get("send", [""])[0] == "1":
+                tg_send(rep)
+            return self._send(200, {"report": rep, "metrics": _metrics()})
         if p in ("/", "/index.html"):
             return self._file("landing.html")
         if p == "/validate":
@@ -161,8 +253,13 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(400, {"error": "bad request"})
             rets = parse_returns_csv(body.get("returns", ""))
             n_trials = int(body.get("n_trials", 10) or 10)
-            paid = is_paid(str(body.get("order", "")).strip())
-            return self._send(200, gate(validate(rets, n_trials=n_trials), paid))
+            order = str(body.get("order", "")).strip()
+            paid = is_paid(order)
+            result = validate(rets, n_trials=n_trials)
+            # считаем попытку (лид) только на СВЕЖий вердикт, не на повторный опрос оплаченного заказа
+            if result.get("verdict") != "INSUFFICIENT" and not order:
+                _bump_attempt()
+            return self._send(200, gate(result, paid))
 
         if self.path == "/api/checkout":
             order_id = "isa_" + _secrets.token_hex(8)
@@ -187,8 +284,22 @@ class Handler(BaseHTTPRequestHandler):
                 d = json.loads(raw)
             except Exception:
                 return self._send(400, {"ok": False})
-            if d.get("payment_status") in ("finished", "confirmed") and d.get("order_id"):
-                _mark_paid(str(d["order_id"]))
+            status = d.get("payment_status")
+            order = str(d.get("order_id", "")).strip()
+            if status in ("finished", "confirmed") and order:
+                _mark_paid(order)
+                m = _record_sale(order)          # None если дубль вебхука
+                if m is not None:
+                    tg_send(f"💰 <b>Продажа!</b> ${PRICE_USD} · заказ {order}\n"
+                            f"Всего продаж: <b>{m['sales']}</b> · выручка <b>${m['revenue']}</b>")
+                try:
+                    pay_amt, actual = d.get("pay_amount"), d.get("actually_paid")
+                    if actual and pay_amt and float(actual) > float(pay_amt) * 1.02:
+                        tg_send(f"⚠️ Переплата по {order}: пришло {actual}, ждали {pay_amt}. Возможен возврат излишка.")
+                except Exception:
+                    pass
+            elif status == "partially_paid" and order:
+                tg_send(f"⚠️ Недоплата по {order} (partially_paid) — отчёт не открыт. Клиент мог ошибиться суммой.")
             return self._send(200, {"ok": True})
 
         return self._send(404, {"error": "not found"})
