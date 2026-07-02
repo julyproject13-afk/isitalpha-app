@@ -94,7 +94,18 @@
   <div style="background:rgba(90,214,196,.06);border:1px solid rgba(90,214,196,.22);border-radius:14px;padding:16px 18px;margin-top:20px">
     <div style="font-weight:650;color:#e9f6f3;font-size:14.5px">🔒 You never share your strategy — only the numbers.</div>
     <div style="color:var(--muted);font-size:13.5px;margin-top:6px">Paste your strategy's <b style="color:var(--ink-soft)">per-period returns</b> — how much it made each day/trade/period, as a percent or a fraction. We can't see or reconstruct your logic, code, or parameters. No account, no API keys, no broker access.</div>
-    <div style="color:var(--muted-2);font-size:12.5px;margin-top:8px"><b>Where to get them:</b> export the per-period P&amp;L / return column from your backtest, trading journal, or broker statement. Example: <code style="background:rgba(255,255,255,.06);padding:1px 6px;border-radius:5px">0.012, -0.004, 0.008, 0.015 …</code> (30+ values). 1.2 or 0.012 both work — we detect percent vs fraction.</div>
+    <div style="color:var(--muted-2);font-size:12.5px;margin-top:8px"><b>Where to get them:</b> the per-period P&amp;L / return column from your backtest, journal, or broker statement. Example: <code style="background:rgba(255,255,255,.06);padding:1px 6px;border-radius:5px">0.012, -0.004, 0.008 …</code> (30+ values). 1.2 or 0.012 both work.</div>
+    <details style="margin-top:10px">
+      <summary style="cursor:pointer;color:var(--teal);font-size:13px;font-weight:600;list-style:none">❔ How do I get my returns? (step-by-step)</summary>
+      <div style="color:var(--muted);font-size:12.5px;line-height:1.7;margin-top:8px;border-left:2px solid rgba(90,214,196,.3);padding-left:12px">
+        <b style="color:var(--ink-soft)">TradingView (Strategy Tester):</b> open your strategy → <i>List of Trades</i> → export CSV → use the <i>Profit %</i> column.<br>
+        <b style="color:var(--ink-soft)">MetaTrader 4/5:</b> Account History tab → right-click → <i>Save as Report</i> → use the <i>Profit</i> column (one number per trade).<br>
+        <b style="color:var(--ink-soft)">Python / backtest:</b> <code style="background:rgba(255,255,255,.06);padding:0 5px;border-radius:4px">print(returns.tolist())</code> → copy the numbers.<br>
+        <b style="color:var(--ink-soft)">Excel / Google Sheets:</b> copy your daily/trade return column and paste it here.<br>
+        <b style="color:var(--ink-soft)">Broker statement:</b> the per-trade or per-day profit column (in % or $).<br>
+        <span style="color:var(--muted-2)">No returns yet? You need to run a backtest first — this tool checks results you already have.</span>
+      </div>
+    </details>
   </div>
 
   <div class="card">
