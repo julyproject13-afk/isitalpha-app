@@ -40,7 +40,7 @@ _load_env()
 NP_API_KEY = os.environ.get("NP_API_KEY", "")          # ключ мерчанта NOWPayments (секрет)
 NP_IPN_SECRET = os.environ.get("NP_IPN_SECRET", "")    # секрет для проверки вебхука (секрет)
 SITE_URL = os.environ.get("SITE_URL", "https://isitalpha.com")
-PRICE_USD = 9
+PRICE_USD = int(os.environ.get("PRICE_USD", "12"))   # $12: выше минимума NOWPayments для USDT-TRC20 (~$10.74). Меняется через bootstrap.env без правки кода.
 
 FREE_FIELDS = ("verdict", "headline", "n", "reason")
 
