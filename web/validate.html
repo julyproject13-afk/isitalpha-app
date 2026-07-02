@@ -65,6 +65,18 @@
   .pw-key button{background:var(--surface-2);border:1px solid var(--line-strong);color:var(--ink-soft);
     padding:10px 16px;border-radius:10px;cursor:pointer;font:600 13px Inter}
   .pw-note{color:var(--muted-2);font-size:12px;margin-top:8px}
+  .confirming{padding:22px 20px;border-radius:14px;border:1px solid var(--line-strong);
+    background:linear-gradient(180deg,rgba(90,214,196,.06),rgba(255,255,255,.02));text-align:center}
+  .spinner{width:38px;height:38px;margin:2px auto 12px;border-radius:50%;
+    border:3px solid rgba(90,214,196,.18);border-top-color:var(--teal);animation:spin .9s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .confirming .c-title{font-weight:700;font-size:16px;color:var(--ink)}
+  .confirming .c-stage{color:var(--teal);font-size:13.5px;margin-top:7px;min-height:18px}
+  .confirming .c-sub{color:var(--muted);font-size:12.5px;margin-top:8px}
+  .confirming .c-bar{height:5px;border-radius:4px;background:rgba(255,255,255,.07);margin:14px auto 0;max-width:280px;overflow:hidden}
+  .confirming .c-bar i{display:block;height:100%;width:30%;border-radius:4px;background:linear-gradient(90deg,var(--teal-deep),var(--teal));
+    animation:slide 1.6s ease-in-out infinite}
+  @keyframes slide{0%{margin-left:-30%}100%{margin-left:100%}}
 </style>
 </head>
 <body>
@@ -86,7 +98,10 @@
   </div>
 
   <div class="card">
-    <label>Returns (one per line, or comma-separated). Percent or fraction — we detect it.</label>
+    <label style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+      <span>Returns (one per line, or comma-separated). Percent or fraction — we detect it.</span>
+      <a onclick="loadExample()" style="color:var(--teal);font-size:12.5px;font-weight:600;cursor:pointer;text-decoration:underline;white-space:nowrap">↧ Load example</a>
+    </label>
     <textarea id="returns" placeholder="0.012&#10;-0.004&#10;0.008&#10;0.015&#10;... (30+ values)"></textarea>
     <div class="row">
       <div class="f">
@@ -103,6 +118,16 @@
 
 <script>
   function orderId(){ try{ return localStorage.getItem("isitalpha_order")||""; }catch(_){ return ""; } }
+
+  // подставляет пример доходностей — чтобы клиент сразу увидел формат и мог попробовать
+  function loadExample(){
+    document.getElementById("returns").value =
+      "0.012, -0.004, 0.008, 0.015, 0.002, -0.006, 0.009, 0.011, -0.003, 0.007, 0.013, -0.005, 0.006, "+
+      "0.010, 0.004, -0.002, 0.008, 0.012, -0.007, 0.009, 0.005, 0.011, -0.004, 0.007, 0.013, 0.003, "+
+      "-0.006, 0.010, 0.008, 0.014, -0.003, 0.006";
+    document.getElementById("n_trials").value = 10;
+    document.getElementById("returns").focus();
+  }
 
   async function run(){
     const btn=document.getElementById("btn"), res=document.getElementById("result");
@@ -167,21 +192,42 @@
     }catch(_){ if(b) b.disabled=false; note.textContent="Couldn't open checkout — try again in a moment."; }
   }
 
-  // при возврате с оплаты (?paid=order) подтверждаем и показываем полный отчёт
+  // при возврате с оплаты (?paid=order) подтверждаем и показываем полный отчёт — с живым индикатором
   async function checkPaidReturn(){
     var m=location.search.match(/[?&]paid=([^&]+)/);
     if(!m) return;
     var order=decodeURIComponent(m[1]);
     try{ localStorage.setItem("isitalpha_order", order); }catch(_){}
-    // даём вебхуку время подтвердить оплату, затем перезапускаем отчёт
     var res=document.getElementById("result");
-    res.style.display="block"; res.innerHTML='<div class="verdict v-BORDERLINE">Confirming your payment…</div>';
-    for(var i=0;i<10;i++){
+    res.style.display="block";
+    var stages=["Waiting for the blockchain to confirm your transfer…",
+                "Verifying the payment with the processor…",
+                "Almost there — preparing your certified report…"];
+    function paint(sec,stageIdx){
+      res.innerHTML=
+        '<div class="confirming">'+
+          '<div class="spinner"></div>'+
+          '<div class="c-title">Confirming your payment…</div>'+
+          '<div class="c-stage">'+stages[Math.min(stageIdx,stages.length-1)]+'</div>'+
+          '<div class="c-bar"><i></i></div>'+
+          '<div class="c-sub">This usually takes 1–3 minutes on the blockchain. Keep this page open — your report opens by itself. ('+sec+'s)</div>'+
+        '</div>';
+    }
+    var started=Date.now();
+    // опрашиваем до ~5 минут; индикатор крутится и показывает этап + секунды
+    for(var i=0;i<75;i++){
+      var sec=Math.round((Date.now()-started)/1000);
+      paint(sec, Math.floor(sec/40));   // этап меняется каждые ~40с
       try{ var r=await (await fetch("/api/unlock",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({order:order})})).json();
         if(r.ok){ run(); return; } }catch(_){}
-      await new Promise(function(res2){ setTimeout(res2,3000); });
+      await new Promise(function(res2){ setTimeout(res2,4000); });
     }
-    res.innerHTML='<div class="verdict v-INSUFFICIENT">Payment is still confirming. Re-run your check in a minute — it unlocks automatically.</div>';
+    res.innerHTML=
+      '<div class="confirming">'+
+        '<div class="c-title" style="color:var(--amber)">⏳ Still confirming your payment</div>'+
+        '<div class="c-sub">Blockchain confirmation can occasionally take longer. Your payment is safe and the report unlocks automatically once confirmed — '+
+        'just keep this page open, or come back and press <b>Get honest verdict</b> again in a few minutes. Need help? contact@isitalpha.com</div>'+
+      '</div>';
   }
   window.addEventListener("load", checkPaidReturn);
 </script>
