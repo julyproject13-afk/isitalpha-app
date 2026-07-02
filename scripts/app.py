@@ -146,8 +146,13 @@ def is_paid(order_id: str) -> bool:
 
 
 # ---------- NOWPayments ----------
-def np_create_invoice(order_id: str) -> str:
-    """Создаёт счёт на $9, возвращает ссылку на страницу оплаты. Пусто, если не настроено."""
+PAY_COINS = {"usdttrc20": "USDT (TRON)", "usdcmatic": "USDC (Polygon)"}  # монеты клиентских кнопок
+
+
+def np_create_invoice(order_id: str, coin: str = "") -> str:
+    """Создаёт счёт на $PRICE_USD, возвращает ссылку на оплату. Пусто, если не настроено.
+    coin — фикс-монета из PAY_COINS (кнопка → чистый экран одной монеты, без списка);
+    иначе берётся PAY_CURRENCY (env) либо открытый выбор клиентом."""
     if not NP_API_KEY:
         return ""
     payload = {
@@ -157,8 +162,9 @@ def np_create_invoice(order_id: str) -> str:
         "cancel_url": f"{SITE_URL}/validate",
         "ipn_callback_url": f"{SITE_URL}/api/ipn",
     }
-    if PAY_CURRENCY:                       # если задано — форсим сеть; иначе клиент выбирает сам
-        payload["pay_currency"] = PAY_CURRENCY
+    cur = coin if coin in PAY_COINS else PAY_CURRENCY   # кнопка форсит монету; иначе env/открытый выбор
+    if cur:
+        payload["pay_currency"] = cur
     try:
         req = urllib.request.Request(
             "https://api.nowpayments.io/v1/invoice",
@@ -262,8 +268,13 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, gate(result, paid))
 
         if self.path == "/api/checkout":
+            try:
+                cbody = json.loads(self._raw() or b"{}")
+            except Exception:
+                cbody = {}
+            coin = str(cbody.get("coin", "")).strip().lower()   # usdttrc20 / usdcmatic от кнопки, либо пусто
             order_id = "isa_" + _secrets.token_hex(8)
-            url = np_create_invoice(order_id)
+            url = np_create_invoice(order_id, coin)
             if not url:
                 return self._send(200, {"ok": False, "reason": "payment_not_configured"})
             return self._send(200, {"ok": True, "order": order_id, "invoice_url": url})

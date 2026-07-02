@@ -59,6 +59,13 @@
   .pw-buy{display:inline-block;background:linear-gradient(180deg,#eee0c0,#d8b878);color:#1a1206;
     font-weight:700;padding:12px 22px;border-radius:11px;text-decoration:none;font-size:15px;margin-top:14px}
   .pw-buy:hover{filter:brightness(1.04)}
+  .pw-buy2{background:linear-gradient(180deg,#cfeae2,#8fd3c4)}
+  .pay-choose{display:flex;flex-direction:column;gap:10px;margin-top:14px;max-width:340px}
+  .pay-choose .pw-buy{margin-top:0;text-align:center;cursor:pointer;border:0}
+  .pay-choose .pw-buy:disabled{opacity:.55;cursor:default;filter:none}
+  .pw-other{margin-top:2px}
+  .pw-other a{color:var(--muted);font-size:12.5px;text-decoration:underline;cursor:pointer}
+  .pw-refund{color:var(--muted-2);font-size:12px;margin-top:10px;line-height:1.5}
   .pw-key{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .pw-key input{flex:1;min-width:180px;padding:10px 12px;border-radius:10px;border:1px solid var(--line-strong);
     background:#0b121a;color:var(--ink);font:13px 'JetBrains Mono',monospace}
@@ -172,14 +179,20 @@
   }
 
   function lockedView(j){
+    var PRICE=(j.price_usd||15);
     var pay = j.pay_ready
-      ? '<button class="pw-buy" id="buy" onclick="checkout()">Unlock full report — $'+(j.price_usd||9)+'</button>'
+      ? '<div class="pw-s" style="margin-top:14px">Pick the coin you already hold — one tap, no long list:</div>'+
+        '<div class="pay-choose">'+
+          '<button class="pw-buy" onclick="checkout(\'usdttrc20\')">Pay $'+PRICE+' · USDT (TRON)</button>'+
+          '<button class="pw-buy pw-buy2" onclick="checkout(\'usdcmatic\')">Pay $'+PRICE+' · USDC (Polygon)</button>'+
+          '<div class="pw-other"><a onclick="checkout(\'\')">Have another coin? (BTC, ETH, USDC-ERC20…)</a></div>'+
+        '</div>'
       : '<div class="pw-note">Payment opens shortly.</div>';
     return ''+
       '<div class="verdict v-'+j.verdict+'">'+j.headline+'</div>'+
       '<div class="paywall">'+
-        '<div class="pw-t">Your verdict is above. The full certified report is $'+(j.price_usd||9)+'.</div>'+
-        '<div class="pw-s">One-time · all fees included · pay in USDC on Polygon. No subscription, no hidden fees. We never see your strategy — only the numbers you paste.</div>'+
+        '<div class="pw-t">Your verdict is above. The full certified report is $'+PRICE+'.</div>'+
+        '<div class="pw-s">One-time · <b>$'+PRICE+' all-in, no hidden fees</b> · no subscription. We never see your strategy — only the numbers you paste.</div>'+
         '<ul>'+
           '<li>Every reason behind the verdict</li>'+
           '<li>Net Sharpe, worst CV fold, deflated bar</li>'+
@@ -187,20 +200,24 @@
           '<li>Downloadable certified report with seal</li>'+
         '</ul>'+
         pay+
-        '<div class="pw-note" id="pay-note">Secure crypto checkout — you return here automatically after payment. On the next page, the email field is <b>optional</b> — enter it only if you want a receipt, otherwise just skip it. Your report unlocks either way. By paying you agree to the <a href="/legal.html#terms" style="color:var(--muted);text-decoration:underline">Terms</a> &amp; <a href="/legal.html#refunds" style="color:var(--muted);text-decoration:underline">Refund Policy</a> and request immediate delivery.</div>'+
+        '<div class="pw-note" id="pay-note">Secure crypto checkout — you come back here automatically after paying. On the payment page the email is <b>optional</b> (only for a receipt) — your report unlocks either way.</div>'+
+        '<div class="pw-refund">💬 Paid twice by mistake, or the report didn\'t unlock? Email <b>contact@isitalpha.com</b> with your payment ID — we refund duplicate or failed payments within <b>3 business days</b>. By paying you agree to the <a href="/legal.html#terms" style="color:var(--muted);text-decoration:underline">Terms</a> &amp; <a href="/legal.html#refunds" style="color:var(--muted);text-decoration:underline">Refund Policy</a>.</div>'+
       '</div>';
   }
 
   // создать счёт → перейти на страницу оплаты (сохранив order для авто-разблокировки по возврату)
-  async function checkout(){
-    var note=document.getElementById("pay-note"), b=document.getElementById("buy");
-    if(b) b.disabled=true; note.textContent="Opening secure checkout…";
+  async function checkout(coin){
+    var note=document.getElementById("pay-note");
+    var btns=document.querySelectorAll(".pay-choose .pw-buy");
+    for(var i=0;i<btns.length;i++) btns[i].disabled=true;
+    if(note) note.textContent="Opening secure checkout…";
+    function reenable(msg){ for(var k=0;k<btns.length;k++) btns[k].disabled=false; if(note) note.textContent=msg; }
     try{
-      var r=await (await fetch("/api/checkout",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"})).json();
+      var r=await (await fetch("/api/checkout",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({coin:coin||""})})).json();
       if(r.ok && r.invoice_url){ try{ localStorage.setItem("isitalpha_order", r.order); }catch(_){}
         window.location.href=r.invoice_url; }
-      else { if(b) b.disabled=false; note.textContent="Checkout isn't available right now — try again shortly."; }
-    }catch(_){ if(b) b.disabled=false; note.textContent="Couldn't open checkout — try again in a moment."; }
+      else reenable("Checkout isn't available right now — try again shortly.");
+    }catch(_){ reenable("Couldn't open checkout — try again in a moment."); }
   }
 
   // при возврате с оплаты (?paid=order) подтверждаем и показываем полный отчёт — с живым индикатором
@@ -214,14 +231,21 @@
     var stages=["Waiting for the blockchain to confirm your transfer…",
                 "Verifying the payment with the processor…",
                 "Almost there — preparing your certified report…"];
+    function fmt(s){ if(s<0)s=0; var mm=Math.floor(s/60),xx=s%60; return mm+":"+(xx<10?"0":"")+xx; }
+    var ETA=180; // ориентир ~3 минуты
     function paint(sec,stageIdx){
+      var left=ETA-sec;
+      var line = left>0
+        ? 'Usually 1–3 minutes · about <b>'+fmt(left)+'</b> left…'
+        : 'Any moment now — finalizing on the blockchain…';
+      var pct = Math.min(96, Math.round(sec/ETA*100));
       res.innerHTML=
         '<div class="confirming">'+
           '<div class="spinner"></div>'+
           '<div class="c-title">Confirming your payment…</div>'+
           '<div class="c-stage">'+stages[Math.min(stageIdx,stages.length-1)]+'</div>'+
-          '<div class="c-bar"><i></i></div>'+
-          '<div class="c-sub">This usually takes 1–3 minutes on the blockchain. Keep this page open — your report opens by itself. ('+sec+'s)</div>'+
+          '<div class="c-bar"><i style="width:'+pct+'%;margin-left:0;animation:none"></i></div>'+
+          '<div class="c-sub">'+line+' Keep this page open — your report opens by itself.</div>'+
         '</div>';
     }
     var started=Date.now();
