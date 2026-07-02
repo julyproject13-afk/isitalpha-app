@@ -93,11 +93,16 @@ def np_ipn_valid(raw: bytes, sig: str) -> bool:
     if not (NP_IPN_SECRET and sig):
         return False
     try:
-        sorted_json = json.dumps(json.loads(raw), separators=(",", ":"), sort_keys=True)
-        mac = hmac.new(NP_IPN_SECRET.encode(), sorted_json.encode(), hashlib.sha512).hexdigest()
-        return hmac.compare_digest(mac, sig)
+        data = json.loads(raw)
     except Exception:
         return False
+    base = json.dumps(data, separators=(",", ":"), sort_keys=True)
+    # NOWPayments (PHP json_encode) экранирует слэши как \/, Python — нет. Пробуем оба варианта.
+    for candidate in (base, base.replace("/", "\\/")):
+        mac = hmac.new(NP_IPN_SECRET.encode(), candidate.encode(), hashlib.sha512).hexdigest()
+        if hmac.compare_digest(mac, sig):
+            return True
+    return False
 
 
 def gate(result: dict, paid: bool) -> dict:
