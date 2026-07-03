@@ -137,6 +137,15 @@
 <script>
   function orderId(){ try{ return localStorage.getItem("isitalpha_order")||""; }catch(_){ return ""; } }
 
+  // источник трафика: берём ?utm_source из URL и запоминаем, чтобы он пережил переход на оплату и возврат
+  function trafficSrc(){
+    try{
+      var u=new URLSearchParams(location.search).get("utm_source");
+      if(u){ localStorage.setItem("isitalpha_src", u); return u; }
+      return localStorage.getItem("isitalpha_src")||"";
+    }catch(_){ return ""; }
+  }
+
   // подставляет пример доходностей — чтобы клиент сразу увидел формат и мог попробовать
   function loadExample(){
     document.getElementById("returns").value =
@@ -151,7 +160,7 @@
     const btn=document.getElementById("btn"), res=document.getElementById("result");
     btn.disabled=true; res.style.display="none";
     const payload={returns:document.getElementById("returns").value,
-                   n_trials:document.getElementById("n_trials").value, order:orderId()};
+                   n_trials:document.getElementById("n_trials").value, order:orderId(), src:trafficSrc()};
     let j;
     try{ j=await (await fetch("/api/validate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)})).json(); }
     catch(_){ btn.disabled=false; res.style.display="block"; res.innerHTML='<div class="verdict v-DEAD">Network error</div>'; return; }
@@ -213,7 +222,7 @@
     if(note) note.textContent="Opening secure checkout…";
     function reenable(msg){ for(var k=0;k<btns.length;k++) btns[k].disabled=false; if(note) note.textContent=msg; }
     try{
-      var r=await (await fetch("/api/checkout",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({coin:coin||""})})).json();
+      var r=await (await fetch("/api/checkout",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({coin:coin||"",src:trafficSrc()})})).json();
       if(r.ok && r.invoice_url){ try{ localStorage.setItem("isitalpha_order", r.order); }catch(_){}
         window.location.href=r.invoice_url; }
       else reenable("Checkout isn't available right now — try again shortly.");

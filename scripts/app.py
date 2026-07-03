@@ -56,7 +56,43 @@ def _metrics() -> dict:
     try:
         return json.load(open(METRICS_FILE, encoding="utf-8"))
     except Exception:
-        return {"attempts": 0, "sales": 0, "revenue": 0, "first_ts": 0, "last_sale_ts": 0, "seen_orders": []}
+        return {"attempts": 0, "sales": 0, "revenue": 0, "first_ts": 0, "last_sale_ts": 0,
+                "seen_orders": [], "sources": {}, "order_src": {}}
+
+
+# ---------- атрибуция источника (utm_source): визит → проверка → продажа ----------
+def _norm_src(s: str) -> str:
+    """Нормализует метку источника: нижний регистр, только буквы/цифры/-/_, ≤24 симв. Пусто/None → 'direct'."""
+    if not s:
+        return "direct"
+    s = "".join(c for c in str(s).lower() if c.isalnum() or c in "-_")[:24]
+    return s or "direct"
+
+
+def _src_row(m: dict, src: str) -> dict:
+    """Возвращает (создавая при необходимости) строку воронки для источника внутри m. Мутирует m."""
+    return m.setdefault("sources", {}).setdefault(
+        _norm_src(src), {"visits": 0, "attempts": 0, "sales": 0, "revenue": 0})
+
+
+def _bump_visit(src: str):
+    """Заход на /validate с ?utm_source=... — засчитываем визит каналу (перекрёстная сверка с рекламой)."""
+    m = _metrics()
+    _src_row(m, src)["visits"] += 1
+    _save_metrics(m)
+
+
+def _tag_order(order_id: str, src: str):
+    """Привязывает заказ к источнику на этапе checkout, чтобы потом атрибутировать продажу каналу."""
+    if not (order_id and src):
+        return
+    m = _metrics()
+    om = m.setdefault("order_src", {})
+    om[order_id] = _norm_src(src)
+    if len(om) > 1000:                      # держим карту компактной
+        for k in list(om)[:-1000]:
+            om.pop(k, None)
+    _save_metrics(m)
 
 
 def _save_metrics(m: dict):
@@ -66,12 +102,14 @@ def _save_metrics(m: dict):
         pass
 
 
-def _bump_attempt():
+def _bump_attempt(src: str = ""):
     import time
     m = _metrics()
     m["attempts"] = m.get("attempts", 0) + 1
     if not m.get("first_ts"):
         m["first_ts"] = int(time.time())
+    if src:
+        _src_row(m, src)["attempts"] += 1
     _save_metrics(m)
 
 
@@ -87,6 +125,11 @@ def _record_sale(order_id: str) -> dict | None:
     m["sales"] = m.get("sales", 0) + 1
     m["revenue"] = m.get("revenue", 0) + PRICE_USD
     m["last_sale_ts"] = int(time.time())
+    src = m.get("order_src", {}).get(order_id)      # атрибуция продажи каналу (если заказ был помечен)
+    if src:
+        row = _src_row(m, src)
+        row["sales"] += 1
+        row["revenue"] += PRICE_USD
     _save_metrics(m)
     return m
 
@@ -115,6 +158,17 @@ def stats_report() -> str:
     per = f"${PRICE_USD} − ~${round(PRICE_USD*0.01,2)} комиссия = ~${round(PRICE_USD*0.99,2)} net"
     last = m.get("last_sale_ts", 0)
     last_s = time.strftime("%d.%m %H:%M", time.gmtime(last)) + " UTC" if last else "—"
+    # воронка по источникам: визит → проверка → продажа (самые «жирные» каналы сверху)
+    srcs = m.get("sources", {})
+    funnel = ""
+    if srcs:
+        rows = sorted(srcs.items(), key=lambda kv: kv[1].get("visits", 0) + kv[1].get("attempts", 0), reverse=True)
+        lines = []
+        for name, r in rows[:6]:
+            v, at, sa = r.get("visits", 0), r.get("attempts", 0), r.get("sales", 0)
+            cr = (sa / v * 100) if v else 0
+            lines.append(f"• <b>{name}</b>: {v} визит → {at} пров. → {sa} прод.  (CR {cr:.1f}%)")
+        funnel = "\n\n🧭 <b>Каналы (визит→проверка→продажа):</b>\n" + "\n".join(lines)
     return (
         "📊 <b>isitalpha — сводка</b>\n\n"
         f"👀 Попыток проверки: <b>{a}</b>\n"
@@ -123,7 +177,8 @@ def stats_report() -> str:
         f"📈 Конверсия: <b>{conv:.1f}%</b>\n\n"
         f"📦 Юнит-экономика: {per}\n"
         f"🎯 CAC: добавь расход рекламы из реестра → CAC = расход/продажи\n"
-        f"🕐 Последняя продажа: {last_s}\n\n"
+        f"🕐 Последняя продажа: {last_s}"
+        f"{funnel}\n\n"
         "<i>LTV пока = 1 покупка (разовый продукт). Следим за повторными и пакетами.</i>"
     )
 
@@ -243,6 +298,10 @@ class Handler(BaseHTTPRequestHandler):
         if p in ("/", "/index.html"):
             return self._file("landing.html")
         if p == "/validate":
+            qs = urllib.parse.parse_qs(self.path.split("?", 1)[1]) if "?" in self.path else {}
+            src = qs.get("utm_source", [""])[0]
+            if src:                         # заход с рекламной ссылки — засчитываем визит каналу
+                _bump_visit(src)
             return self._file("validate.html")
         if p == "/report":
             return self._file("report.html")
@@ -266,11 +325,12 @@ class Handler(BaseHTTPRequestHandler):
             rets = parse_returns_csv(body.get("returns", ""))
             n_trials = int(body.get("n_trials", 10) or 10)
             order = str(body.get("order", "")).strip()
+            src = str(body.get("src", "")).strip()      # utm_source, проброшенный фронтом
             paid = is_paid(order)
             result = validate(rets, n_trials=n_trials)
             # считаем попытку (лид) только на СВЕЖий вердикт, не на повторный опрос оплаченного заказа
             if result.get("verdict") != "INSUFFICIENT" and not order:
-                _bump_attempt()
+                _bump_attempt(src)
             return self._send(200, gate(result, paid))
 
         if self.path == "/api/checkout":
@@ -279,10 +339,12 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 cbody = {}
             coin = str(cbody.get("coin", "")).strip().lower()   # usdttrc20 / usdcmatic от кнопки, либо пусто
+            src = str(cbody.get("src", "")).strip()              # utm_source для атрибуции продажи каналу
             order_id = "isa_" + _secrets.token_hex(8)
             url = np_create_invoice(order_id, coin)
             if not url:
                 return self._send(200, {"ok": False, "reason": "payment_not_configured"})
+            _tag_order(order_id, src)
             return self._send(200, {"ok": True, "order": order_id, "invoice_url": url})
 
         if self.path == "/api/unlock":
