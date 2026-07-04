@@ -200,11 +200,12 @@ def validate(returns: Sequence[float], n_trials: int = 10, cost_bps: float = 5.0
 
     # verdict
     if passed_cv and passed_dd and passed_cvar:
-        if implausible:                # прошло гейт, но метрики нереальны → не «реальная», а «слишком хорошо»
-            verdict = "UNCLEAR"
-            headline = ("⚠️ Too good to be true — an annualized Sharpe of %.0f isn't something real trading sustains. "
-                        "This looks synthetic, rounded, or mislabeled (e.g. an equity curve). We won't certify it." % net_sh)
-            reasons = ["Implausible performance (Sharpe %.1f) — verify these are real, per-period, out-of-sample returns." % net_sh]
+        if implausible:                # прошло гейт, но метрики неправдоподобно высоки → НЕ фейк, но и НЕ сертифицируем REAL
+            verdict = "BORDERLINE"
+            headline = ("🟡 Passed every check, but the performance is unusually high (annualized Sharpe %.0f). "
+                        "We can't certify it as a REAL edge from this alone — please confirm these are genuine, "
+                        "per-period, out-of-sample returns (not an equity curve or synthetic)." % net_sh)
+            reasons = ["Unusually high performance (Sharpe %.1f) — double-check the data is real, per-period and out-of-sample." % net_sh]
         elif len(returns) < MIN_FOR_REAL:   # прошло, но мало данных для сертификации
             verdict = "BORDERLINE"
             headline = ("🟡 Passed the checks, but too little data to certify — need at least %d points for a REAL verdict "

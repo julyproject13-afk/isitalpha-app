@@ -19,7 +19,8 @@ check(0 < r["net_sharpe"] <= 8,"Sharpe правдоподобный (не фей
 smooth=[0.0018 + 0.0004*math.sin(i*0.7) for i in range(220)]
 r=validate(smooth, n_trials=10)
 check(r["verdict"]!="REAL","фейк-гладкий (Sharpe нереален) НЕ проходит как реальный")
-check(r["verdict"]=="UNCLEAR","нереальный Sharpe → UNCLEAR (слишком хорошо)")
+check(r["verdict"]=="BORDERLINE","нереальный Sharpe → BORDERLINE (слишком хорошо, но НЕ называем фейком)")
+check(r["verdict"]!="UNCLEAR","реальный ряд с высоким Sharpe НЕ помечается фейком (UNCLEAR)")
 
 # 1c) ЗАЩИТА: прошёл проверки, но мало данных (<60) — НЕ сертифицируем как REAL
 random.seed(31)
