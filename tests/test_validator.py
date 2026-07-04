@@ -1,5 +1,5 @@
 """Тесты Honest Validator (2-й продукт). PYTHONPATH=src python3 tests/test_validator.py"""
-import sys, math; sys.path.insert(0,"src")
+import sys, math, random; sys.path.insert(0,"src")
 from validator.validator import validate, parse_returns_csv
 
 _n=0
@@ -7,11 +7,25 @@ def check(c,m):
     global _n; assert c,"FAIL: "+m; _n+=1; print("  [OK]",m)
 
 print("ТЕСТ Honest Validator:")
-# 1) РЕАЛЬНЫЙ край — стабильно положительный, низкий шум
-real=[0.0018 + 0.0004*math.sin(i*0.7) for i in range(220)]
-r=validate(real, n_trials=10)
-check(r["verdict"]=="REAL","стабильный положительный → REAL")
+# 1) РЕАЛЬНЫЙ край — РЕАЛИСТИЧНЫЙ (умеренный Sharpe, с убытками и просадками)
+random.seed(31)
+real=[round(random.gauss(0.0018,0.008),4) for _ in range(180)]
+r=validate(real, n_trials=1)
+check(r["verdict"]=="REAL","реалистичный устойчивый край → REAL")
 check(r["cv_worst_fold"]>0,"худший фолд положителен у реального края")
+check(0 < r["net_sharpe"] <= 8,"Sharpe правдоподобный (не фейк)")
+
+# 1b) ЗАЩИТА: фейк-гладкий ряд с НЕРЕАЛЬНЫМ Sharpe — НЕ должен быть REAL
+smooth=[0.0018 + 0.0004*math.sin(i*0.7) for i in range(220)]
+r=validate(smooth, n_trials=10)
+check(r["verdict"]!="REAL","фейк-гладкий (Sharpe нереален) НЕ проходит как реальный")
+check(r["verdict"]=="UNCLEAR","нереальный Sharpe → UNCLEAR (слишком хорошо)")
+
+# 1c) ЗАЩИТА: прошёл проверки, но мало данных (<60) — НЕ сертифицируем как REAL
+random.seed(31)
+short=[round(random.gauss(0.0018,0.008),4) for _ in range(45)]
+r=validate(short, n_trials=1)
+check(r["verdict"]!="REAL","<60 точек не сертифицируем как REAL")
 
 # 2) САМООБМАН — работает в первой половине, теряет во второй (переподгон/режим)
 fake=[(0.004 if i<110 else -0.0015) + 0.0006*math.sin(i*0.9) for i in range(220)]
@@ -35,6 +49,6 @@ check(len(p)==5 and p[0]==0.01,"парсер: числа из CSV/мусора")
 check(parse_returns_csv("5\n-3\n2")[0]==0.05,"парсер: проценты (5 → 0.05)")
 
 # 6) метрики на месте
-m=validate(real)
+m=validate(real, n_trials=1)
 check(all(kk in m for kk in ["net_sharpe","cv_worst_fold","deflated_threshold","max_drawdown","cvar","headline"]),"вердикт содержит метрики+headline")
 print(f"\nВСЕГО ПРОВЕРОК: {_n} — РЕЗУЛЬТАТ: PASS")

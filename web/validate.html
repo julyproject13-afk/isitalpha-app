@@ -39,7 +39,7 @@
   .verdict{padding:18px 20px;border-radius:14px;font-size:17px;font-weight:700}
   .v-REAL{background:rgba(98,201,138,.12);border:1px solid var(--green);color:#bfeacb}
   .v-SELF-DECEPTION,.v-DEAD{background:rgba(224,138,130,.12);border:1px solid var(--red);color:#f0c9c5}
-  .v-BORDERLINE,.v-INSUFFICIENT{background:rgba(227,185,94,.12);border:1px solid var(--amber);color:#f1dca8}
+  .v-BORDERLINE,.v-INSUFFICIENT,.v-UNCLEAR{background:rgba(227,185,94,.12);border:1px solid var(--amber);color:#f1dca8}
   .reasons{margin-top:14px;padding-left:0;list-style:none}
   .reasons li{padding:7px 0 7px 22px;position:relative;color:var(--ink-soft);font-size:14px}
   .reasons li:before{content:"›";position:absolute;left:4px;color:var(--teal)}
@@ -149,10 +149,8 @@
   // подставляет пример доходностей — чтобы клиент сразу увидел формат и мог попробовать
   function loadExample(){
     document.getElementById("returns").value =
-      "0.012, -0.004, 0.008, 0.015, 0.002, -0.006, 0.009, 0.011, -0.003, 0.007, 0.013, -0.005, 0.006, "+
-      "0.010, 0.004, -0.002, 0.008, 0.012, -0.007, 0.009, 0.005, 0.011, -0.004, 0.007, 0.013, 0.003, "+
-      "-0.006, 0.010, 0.008, 0.014, -0.003, 0.006";
-    document.getElementById("n_trials").value = 10;
+      "0.0057, 0.0021, -0.0077, 0.0094, 0.0043, 0.0048, 0.0033, 0.0152, 0.0097, 0.0123, -0.0005, -0.0019, -0.0067, -0.0001, -0.0211, 0.0158, 0.0032, 0.0027, 0.0094, -0.0012, 0.0041, 0.0086, -0.0114, 0.0168, 0.0032, 0.0072, -0.0069, -0.0033, 0.0164, -0.0026, -0.0015, 0.0061, 0.0142, -0.0188, 0.0146, 0.0043, 0.0097, -0.0067, 0.0046, 0.0158, 0.0011, -0.0034, -0.0018, -0.0026, 0.0088, 0.0037, -0.0023, 0.0087, -0.0074, -0.0103, 0.0231, -0.0035, 0.0159, 0.0012, 0.0001, 0.0065, -0.0054, -0.0053, 0.0002, -0.0014, 0.0081, 0.0187, -0.0081, -0.0055, 0.0085, 0.0064, 0.0116, -0.0044, 0.0071, 0.0015, -0.012, 0.0058, -0.0115, 0.0066, -0.0019, 0.0003, 0.0204, 0.0151, 0.0056, 0.0054, -0.0047, 0.0127, 0.0073, -0.0054, -0.0123, 0.002, 0.0004, 0.0094, -0.0068, -0.0056, 0.0056, 0.0027, 0.0101, 0.0116, -0.0058, -0.0183, 0.0025, -0.0043, 0.0041, -0.0213, 0.0011, 0.0028, -0.0028, 0.0064, 0.0029, 0.004, 0.0131, 0.0131, 0.0123, 0.0052, 0.0032, 0.0068, 0.0047, -0.0043, 0.0054, 0.0099, -0.0015, -0.0074, 0.007, -0.0045, -0.0108, -0.0001, -0.0105, 0.0048, -0.0024, 0.0027, 0.0118, 0.0116, 0.0012, -0.0173, -0.0021, -0.008, 0.0097, 0.0153, 0.008, 0.0075, 0.0068, 0.0079, -0.0012, 0.0097, -0.0006, -0.0079, 0.0024, 0.0157, 0.0004, -0.0131, 0.0126, 0.0041, 0.0067, -0.002, 0.0061, 0.0158, -0.0035, 0.0079, 0.005, -0.0054, 0.0036, 0.0071, -0.0052, 0.012, -0.0075, 0.0119, 0.0073, 0.0042, -0.0047, -0.0047, -0.0169, 0.0018, 0.0009, 0.0068, 0.0108, 0.0037, -0.0008, 0.0105, 0.002, 0.0018, -0.008, 0.011, -0.0037, 0.0186";
+    document.getElementById("n_trials").value = 1;
     document.getElementById("returns").focus();
   }
 
@@ -165,11 +163,12 @@
     try{ j=await (await fetch("/api/validate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)})).json(); }
     catch(_){ btn.disabled=false; res.style.display="block"; res.innerHTML='<div class="verdict v-DEAD">Network error</div>'; return; }
     btn.disabled=false;
-    res.style.display="block";
-    if(j.verdict==="INSUFFICIENT"){
-      res.innerHTML='<div class="verdict v-INSUFFICIENT">⚠️ '+(j.reason||"need more data")+'</div>'; return;
+    res.style.display="block"; window.__V=(j.verdict||"");
+    if(j.verdict==="INSUFFICIENT" || j.verdict==="UNCLEAR"){
+      res.innerHTML='<div class="verdict v-'+j.verdict+'">'+(j.headline||("⚠️ "+(j.reason||"need more data")))+'</div>'+
+        '<ul class="reasons">'+(j.reasons||[]).map(r=>'<li>'+r+'</li>').join('')+'</ul>'; return;
     }
-    // FREE: только вердикт-слово + заголовок; полный отчёт — за $9 (locked)
+    // FREE: только вердикт-слово + заголовок; полный отчёт — платный (locked, цена из бэкенда)
     if(j.locked){ res.innerHTML=lockedView(j); return; }
     // PAID: полный отчёт
     const m=(l,v)=>'<div class="metric"><div class="l">'+l+'</div><div class="v">'+v+'</div></div>';
@@ -184,7 +183,7 @@
         m("CVaR", (j.cvar*100).toFixed(1)+"%")+
         m("Tail-adj Sharpe", j.tail_adj_sharpe)+
       '</div>'+
-      '<div class="disc">'+(j.note||"")+'</div>';
+      '<div class="disc">'+(j.note||"")+'</div>'+shareRow();
   }
 
   function lockedView(j){
@@ -199,19 +198,33 @@
       : '<div class="pw-note">Payment opens shortly.</div>';
     return ''+
       '<div class="verdict v-'+j.verdict+'">'+j.headline+'</div>'+
+      shareRow()+
       '<div class="paywall">'+
-        '<div class="pw-t">Your verdict is above. The full certified report is $'+PRICE+'.</div>'+
+        '<div class="pw-t">Your verdict is above. The full report is $'+PRICE+'.</div>'+
         '<div class="pw-s">One-time · <b>$'+PRICE+' all-in, no hidden fees</b> · no subscription. We never see your strategy — only the numbers you paste.</div>'+
         '<ul>'+
           '<li>Every reason behind the verdict</li>'+
           '<li>Net Sharpe, worst CV fold, deflated bar</li>'+
           '<li>Max drawdown, CVaR, tail-adjusted Sharpe</li>'+
-          '<li>Downloadable certified report with seal</li>'+
+          '<li>Shareable verdict you can post or send</li>'+
         '</ul>'+
         pay+
         '<div class="pw-note" id="pay-note">Secure crypto checkout — you come back here automatically after paying. On the payment page the email is <b>optional</b> (only for a receipt) — your report unlocks either way.</div>'+
         '<div class="pw-refund">💬 Paid twice by mistake, or the report didn\'t unlock? Email <b>contact@isitalpha.com</b> with your payment ID — we refund duplicate or failed payments within <b>3 business days</b>. By paying you agree to the <a href="/legal.html#terms" style="color:var(--muted);text-decoration:underline">Terms</a> &amp; <a href="/legal.html#refunds" style="color:var(--muted);text-decoration:underline">Refund Policy</a>.</div>'+
       '</div>';
+  }
+
+  // «Поделиться вердиктом» — виральная петля (нативный share или копия в буфер)
+  function shareRow(){ return '<button class="share-btn" onclick="shareVerdict()">↗ Share this verdict</button>'; }
+  function shareVerdict(){
+    var v=window.__V||"a verdict";
+    var t="I ran my strategy through isitalpha's honest gauntlet — verdict: "+v+". Check yours →";
+    var url="https://isitalpha.com";
+    if(navigator.share){ navigator.share({title:"isitalpha",text:t,url:url}).catch(function(){}); return; }
+    try{ navigator.clipboard.writeText(t+" "+url);
+      var b=document.querySelector(".share-btn");
+      if(b){ var o=b.textContent; b.textContent="✓ Copied — paste anywhere"; setTimeout(function(){b.textContent=o;},1900); }
+    }catch(_){}
   }
 
   // создать счёт → перейти на страницу оплаты (сохранив order для авто-разблокировки по возврату)

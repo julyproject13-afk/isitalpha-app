@@ -13,6 +13,8 @@ import json
 import os
 import secrets as _secrets
 import sys
+import threading
+import time
 import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -49,6 +51,31 @@ REPORT_KEY = os.environ.get("REPORT_KEY", "")          # защита /api/repor
 METRICS_FILE = os.path.join(ROOT, "metrics.json")      # бизнес-счётчики (локально)
 
 FREE_FIELDS = ("verdict", "headline", "n", "reason")
+
+# ---------- защита от DoS / абьюза (уровень приложения; nginx/CF — снаружи) ----------
+MAX_BODY = 1_048_576          # 1 MB — потолок тела POST (self.rfile.read по Content-Length)
+MAX_POINTS = 10_000           # потолок длины ряда (≈40 лет дневных данных — с запасом)
+RL_MAX = int(os.environ.get("RATE_LIMIT_MAX", "30"))    # запросов на IP в окно
+RL_WINDOW = int(os.environ.get("RATE_LIMIT_WINDOW", "60"))  # окно, сек
+_RL_LOCK = threading.Lock()
+_RL: dict = {}                # ip -> [window_start_ts, count]
+
+
+def _rate_ok(ip: str) -> bool:
+    """Простой лимитер: не более RL_MAX запросов с IP за RL_WINDOW сек. Потокобезопасно."""
+    now = time.time()
+    with _RL_LOCK:
+        w = _RL.get(ip)
+        if not w or now - w[0] >= RL_WINDOW:
+            _RL[ip] = [now, 1]
+            if len(_RL) > 10000:                     # редкая чистка протухших окон
+                for k in [k for k, v in list(_RL.items()) if now - v[0] >= RL_WINDOW]:
+                    _RL.pop(k, None)
+            return True
+        if w[1] >= RL_MAX:
+            return False
+        w[1] += 1
+        return True
 
 
 # ---------- бизнес-метрики (попытки/продажи/выручка) ----------
@@ -281,20 +308,55 @@ class Handler(BaseHTTPRequestHandler):
     def _raw(self):
         try:
             n = int(self.headers.get("Content-Length", 0))
+            if n > MAX_BODY:                 # не читаем гигантские тела в память
+                return b""
             return self.rfile.read(n)
         except Exception:
             return b""
 
+    def _client_ip(self) -> str:
+        """Реальный IP клиента: за nginx/Cloudflare берём первый из X-Forwarded-For."""
+        xff = self.headers.get("X-Forwarded-For", "")
+        if xff:
+            return xff.split(",")[0].strip()
+        return self.client_address[0] if self.client_address else "?"
+
+    def _too_big(self) -> bool:
+        try:
+            return int(self.headers.get("Content-Length", 0)) > MAX_BODY
+        except Exception:
+            return False
+
     def do_GET(self):
         p = self.path.split("?")[0]
         if p == "/api/report":
+            if not _rate_ok(self._client_ip()):
+                return self._send(429, {"error": "too many requests"})
             qs = urllib.parse.parse_qs(self.path.split("?", 1)[1]) if "?" in self.path else {}
-            if REPORT_KEY and qs.get("key", [""])[0] != REPORT_KEY:
+            supplied = self.headers.get("X-Report-Key", "") or qs.get("key", [""])[0]
+            # fail-closed: без заданного REPORT_KEY ручка ЗАКРЫТА — бизнес-метрики не утекают.
+            if not REPORT_KEY or not hmac.compare_digest(supplied, REPORT_KEY):
                 return self._send(403, {"error": "forbidden"})
             rep = stats_report()
             if qs.get("send", [""])[0] == "1":
                 tg_send(rep)
             return self._send(200, {"report": rep, "metrics": _metrics()})
+        if p == "/api/ping":
+            # Мост «рабочая сессия → владелец»: любая моя сессия шлёт строку в Telegram через сервер.
+            # Защита: тот же REPORT_KEY (fail-closed) + rate-limit. Пример:
+            #   curl -H "X-Report-Key: <ключ>" "https://isitalpha.com/api/ping?msg=Приходи+к+ПК"
+            if not _rate_ok(self._client_ip()):
+                return self._send(429, {"error": "too many requests"})
+            qs = urllib.parse.parse_qs(self.path.split("?", 1)[1]) if "?" in self.path else {}
+            supplied = self.headers.get("X-Report-Key", "") or qs.get("key", [""])[0]
+            if not REPORT_KEY or not hmac.compare_digest(supplied, REPORT_KEY):
+                return self._send(403, {"error": "forbidden"})
+            msg = (qs.get("msg", [""])[0] or "").strip()[:500]
+            if not msg:
+                return self._send(400, {"error": "empty msg"})
+            safe = msg.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            tg_send("🛠 <b>Сессия Claude</b>\n" + safe)
+            return self._send(200, {"ok": True})
         if p in ("/", "/index.html"):
             return self._file("landing.html")
         if p == "/validate":
@@ -317,13 +379,22 @@ class Handler(BaseHTTPRequestHandler):
         return self._send(404, {"error": "not found"})
 
     def do_POST(self):
+        if self._too_big():                              # тело больше 1 MB — режем сразу
+            return self._send(413, {"error": "payload too large"})
+        # rate-limit на дорогие/абьюзабельные ручки (IPN и unlock не лимитируем — HMAC/дёшево)
+        if self.path in ("/api/validate", "/api/checkout") and not _rate_ok(self._client_ip()):
+            return self._send(429, {"error": "too many requests", "retry_after": RL_WINDOW})
+
         if self.path == "/api/validate":
             try:
                 body = json.loads(self._raw() or b"{}")
             except Exception:
                 return self._send(400, {"error": "bad request"})
             rets = parse_returns_csv(body.get("returns", ""))
+            if len(rets) > MAX_POINTS:                    # защита от гигантских рядов
+                rets = rets[:MAX_POINTS]
             n_trials = int(body.get("n_trials", 10) or 10)
+            n_trials = max(1, min(n_trials, 1000))        # ограничим диапазон испытаний
             order = str(body.get("order", "")).strip()
             src = str(body.get("src", "")).strip()      # utm_source, проброшенный фронтом
             paid = is_paid(order)

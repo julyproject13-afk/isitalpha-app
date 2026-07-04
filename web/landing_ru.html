@@ -1,25 +1,25 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="isitalpha — upload your strategy returns and get an honest verdict: REAL, SELF-DECEPTION, or DEAD. The same out-of-sample engine that retired 5,374 strategies that looked great on a chart.">
+<meta name="description" content="isitalpha — вставь доходности своей стратегии и получи честный вердикт: РАБОЧАЯ, САМООБМАН или МЁРТВАЯ. Тот же честный движок, что отбраковал 5 374 стратегии, красиво выглядевшие на графике.">
 <meta name="keywords" content="backtest overfitting, deflated sharpe ratio, walk forward analysis, is my trading strategy real, purged cross validation, out of sample validation, quant strategy validation">
 <link rel="canonical" href="https://isitalpha.com/">
-<title>isitalpha — Is your strategy real, or self-deception?</title>
+<title>isitalpha — твоя стратегия реальная или самообман?</title>
 <!-- Open Graph (превью при шеринге в Telegram/Reddit/FB) -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="isitalpha">
 <meta property="og:url" content="https://isitalpha.com/">
-<meta property="og:title" content="Is your trading strategy real — or self-deception?">
-<meta property="og:description" content="Paste your returns → purged-CV, deflated Sharpe, costs, tail risk → a blunt verdict. We tested 5,763 strategies; 5,374 died. Free verdict.">
+<meta property="og:title" content="Твоя торговая стратегия реальная — или самообман?">
+<meta property="og:description" content="Вставь доходности → purged-CV, deflated Sharpe, издержки, хвостовой риск → прямой вердикт. Проверили 5 763 стратегии; 5 374 умерли. Вердикт бесплатно.">
 <meta property="og:image" content="https://isitalpha.com/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Is your trading strategy real — or self-deception?">
-<meta name="twitter:description" content="We tested 5,763 strategies; 5,374 died. Paste your returns for a blunt, honest verdict. Free.">
+<meta name="twitter:title" content="Твоя торговая стратегия реальная — или самообман?">
+<meta name="twitter:description" content="Проверили 5 763 стратегии; 5 374 умерли. Вставь доходности — получи прямой честный вердикт. Бесплатно.">
 <meta name="twitter:image" content="https://isitalpha.com/og.png">
 <meta name="robots" content="index, follow">
 <link rel="icon" type="image/png" href="/favicon.png">
@@ -419,10 +419,10 @@
       <span>isitalpha</span>
     </a>
     <div class="nav-links">
-      <a class="lnk" href="#problem">The problem</a>
-      <a class="lnk" href="#how">How it works</a>
-      <a class="lnk" href="#pricing">Pricing</a>
-      <a class="btn btn-ghost" href="/validate" style="padding:10px 18px;font-size:14px">Validate free</a>
+      <a class="lnk" href="#problem">Проблема</a>
+      <a class="lnk" href="#how">Как это работает</a>
+      <a class="lnk" href="#pricing">Цены</a>
+      <a class="btn btn-ghost" href="validate_ru.html" style="padding:10px 18px;font-size:14px">Проверить бесплатно</a>
     </div>
   </nav>
 </div>
@@ -431,82 +431,82 @@
 
 <!-- ================= HERO ================= -->
 <header class="hero wrap">
-  <span class="eyebrow"><span class="pip" aria-hidden="true"></span> Honest out-of-sample validation · information only</span>
-  <h1>Is your strategy <span class="serif">real</span> — or self-deception?</h1>
-  <p class="sub">A beautiful backtest is easy. Surviving reality is not. Upload your strategy's returns and our honest gauntlet returns a verdict — <b>REAL, SELF-DECEPTION, or DEAD</b> — with the exact reason. A free AI will flatter your overfit. We'll tell you the truth before the market charges you for it.</p>
+  <span class="eyebrow"><span class="pip" aria-hidden="true"></span> Честная вне-выборочная проверка · только информация</span>
+  <h1>Твоя стратегия <span class="serif">реальная</span> — или самообман?</h1>
+  <p class="sub">Красивый бэктест — это легко. Пережить реальность — нет. Загрузи доходности своей стратегии, и наш честный «гонтлет» вернёт вердикт — <b>РАБОЧАЯ, САМООБМАН или МЁРТВАЯ</b> — с точной причиной. Бесплатный ИИ польстит твоему переобучению. Мы скажем правду до того, как её выставит счётом рынок.</p>
   <div class="hero-cta">
-    <a class="btn btn-gold btn-lg" href="/validate">
+    <a class="btn btn-gold btn-lg" href="validate_ru.html">
       <svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Validate free
+      Проверить бесплатно
     </a>
-    <a class="btn btn-ghost btn-lg" href="#how">See how it works</a>
+    <a class="btn btn-ghost btn-lg" href="#how">Посмотреть, как работает</a>
   </div>
   <div class="hero-meta">
-    <span><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg> No card for your first check</span>
-    <span><svg viewBox="0 0 24 24"><path d="M12 2l8 4v5c0 5-3.5 8.5-8 11-4.5-2.5-8-6-8-11V6l8-4z" stroke-linejoin="round"/></svg> We never hold funds or trade</span>
-    <span><svg viewBox="0 0 24 24"><path d="M3 12h4l3-9 4 18 3-9h4" stroke-linecap="round" stroke-linejoin="round"/></svg> Same engine that retired <span class="js-killed">5,374</span> strategies · <span class="js-real">0</span> real</span>
+    <span><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg> Первая проверка — без карты</span>
+    <span><svg viewBox="0 0 24 24"><path d="M12 2l8 4v5c0 5-3.5 8.5-8 11-4.5-2.5-8-6-8-11V6l8-4z" stroke-linejoin="round"/></svg> Мы не храним деньги и не торгуем</span>
+    <span><svg viewBox="0 0 24 24"><path d="M3 12h4l3-9 4 18 3-9h4" stroke-linecap="round" stroke-linejoin="round"/></svg> Тот же движок отбраковал <span class="js-killed">5 374</span> стратегии · <span class="js-real">0</span> реальных</span>
   </div>
   <div class="hero-chips" aria-hidden="true">
-    <span class="vchip real"><span class="dot"></span>REAL <small>survives honest OOS</small></span>
-    <span class="vchip self"><span class="dot"></span>SELF-DECEPTION <small>looks real, isn't</small></span>
-    <span class="vchip dead"><span class="dot"></span>DEAD <small>no surviving edge</small></span>
+    <span class="vchip real"><span class="dot"></span>РАБОЧАЯ <small>прошла честный OOS</small></span>
+    <span class="vchip self"><span class="dot"></span>САМООБМАН <small>кажется реальной, но нет</small></span>
+    <span class="vchip dead"><span class="dot"></span>МЁРТВАЯ <small>края не осталось</small></span>
   </div>
 </header>
 
 <!-- ================= PROBLEM ================= -->
 <section class="block wrap" id="problem">
   <div class="sec-head reveal">
-    <span class="kicker">The problem</span>
-    <h2 class="sec-title">Your backtest <span class="serif">lies</span>.</h2>
-    <p class="sec-sub">Not on purpose. A curve that climbs cleanly is the single most convincing thing in trading — and the easiest to fake by accident. Three quiet killers do most of the damage.</p>
+    <span class="kicker">Проблема</span>
+    <h2 class="sec-title">Твой бэктест <span class="serif">врёт</span>.</h2>
+    <p class="sec-sub">Не нарочно. Гладко растущая кривая — самое убедительное, что есть в трейдинге, и самое лёгкое, что можно случайно подделать. Основной урон наносят три тихих убийцы.</p>
   </div>
   <div class="prob-grid">
     <div class="prob reveal">
       <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 16V9M12 16V6M16 16v-4M20 16v-7" stroke-linecap="round"/><path d="M3 21l4-4" stroke-linecap="round" opacity=".5"/></svg></span>
-      <h3>Survivorship</h3>
-      <p>You test on the assets and periods that <b>made it to today</b>. The blow-ups that quietly delisted never entered your data — so your edge looks safer than the world ever was.</p>
+      <h3>Выживание (Survivorship)</h3>
+      <p>Ты тестируешь на активах и периодах, <b>доживших до сегодня</b>. Взрывы, тихо ушедшие с рынка, в твои данные не попали — поэтому край выглядит безопаснее, чем мир когда-либо был.</p>
     </div>
     <div class="prob reveal">
       <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 4-6 5 4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" opacity=".35"/></svg></span>
-      <h3>Overfitting</h3>
-      <p>Tune enough parameters and you stop modelling the market and start <b>memorising the noise</b>. The result is gorgeous in-sample and helpless the moment new data arrives.</p>
+      <h3>Переобучение</h3>
+      <p>Подкрути достаточно параметров — и ты уже не моделируешь рынок, а <b>заучиваешь шум</b>. Результат великолепен на истории и беспомощен, как только приходят новые данные.</p>
     </div>
     <div class="prob reveal">
       <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10" stroke-linecap="round"/><path d="M16 16l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-      <h3>Multiple testing</h3>
-      <p>Try 200 ideas and one will look brilliant by <b>pure luck</b>. Without a penalty for how many you tried, the winner you fell in love with is often just the loudest coin flip.</p>
+      <h3>Множественное тестирование</h3>
+      <p>Попробуй 200 идей — и одна покажется блестящей по <b>чистому везению</b>. Без поправки на число попыток «победитель», в которого ты влюбился, часто просто самый громкий бросок монеты.</p>
     </div>
   </div>
-  <p class="prob-foot reveal">The chart feels like proof. <b>It isn't.</b> Real money is where the illusion gets billed to you.</p>
+  <p class="prob-foot reveal">График ощущается как доказательство. <b>Это не так.</b> Реальные деньги — там, где иллюзию выставляют тебе счётом.</p>
 </section>
 
 <!-- ================= HOW IT WORKS ================= -->
 <section class="block wrap" id="how">
   <div class="sec-head reveal">
-    <span class="kicker">How it works</span>
-    <h2 class="sec-title">One paste. One honest <span class="serif">gauntlet</span>. One verdict.</h2>
-    <p class="sec-sub">No setup, no integration, no access to your account. Just your return series and an honest answer in seconds.</p>
+    <span class="kicker">Как это работает</span>
+    <h2 class="sec-title">Одна вставка. Один честный <span class="serif">гонтлет</span>. Один вердикт.</h2>
+    <p class="sec-sub">Без настройки, без интеграций, без доступа к твоему счёту. Только твой ряд доходностей и честный ответ за секунды.</p>
   </div>
   <div class="steps">
     <div class="step reveal">
       <span class="num">01</span>
-      <h3>Paste your returns</h3>
-      <p>Drop in your strategy's per-period returns and how many variants you tested to find it. <b>Nothing connected, nothing custodial.</b> It's just numbers in.</p>
-      <div class="tags"><span class="t">Returns series</span><span class="t">Trials count</span></div>
+      <h3>Вставь свои доходности</h3>
+      <p>Вставь доходности стратегии по периодам и сколько вариантов ты перебрал, чтобы её найти. <b>Ничего не подключаем, деньги не трогаем.</b> Просто числа на входе.</p>
+      <div class="tags"><span class="t">Ряд доходностей</span><span class="t">Число попыток</span></div>
     </div>
     <div class="step reveal">
       <span class="num">02</span>
-      <h3>Run the honest gauntlet</h3>
-      <p>We re-test it the way reality will — net of costs, across purged splits, and against a bar raised for every variant you tried. <b>No re-tuning until it passes.</b></p>
+      <h3>Прогони честный гонтлет</h3>
+      <p>Мы перепроверяем так, как это сделает реальность — за вычетом издержек, по «очищенным» разбиениям и против планки, поднятой за каждый перебранный вариант. <b>Никакой подгонки до прохождения.</b></p>
       <div class="tags">
-        <span class="t">Purged-CV</span><span class="t">Deflated-Sharpe</span><span class="t">Costs &amp; slippage</span><span class="t">Tail / CVaR</span>
+        <span class="t">Purged-CV</span><span class="t">Deflated-Sharpe</span><span class="t">Издержки и проскальзывание</span><span class="t">Tail / CVaR</span>
       </div>
     </div>
     <div class="step reveal">
       <span class="num">03</span>
-      <h3>Get your verdict + report</h3>
-      <p>A clear <b>REAL · SELF-DECEPTION · DEAD</b> verdict with the precise reason, the numbers behind it, and a clean report you can keep or share.</p>
-      <div class="tags"><span class="t">Plain-language reason</span><span class="t">Shareable verdict</span></div>
+      <h3>Получи вердикт + отчёт</h3>
+      <p>Ясный вердикт <b>РАБОЧАЯ · САМООБМАН · МЁРТВАЯ</b> с точной причиной, числами за ним и аккуратным отчётом, который можно сохранить или показать.</p>
+      <div class="tags"><span class="t">Причина простым языком</span><span class="t">Отчёт для шеринга</span></div>
     </div>
   </div>
 </section>
@@ -517,14 +517,14 @@
     <div class="proof-inner">
       <div>
         <div class="big-num">24</div>
-        <div class="big-label">strategies we retired — that looked great.</div>
-        <p class="big-sub">We didn't build this to sell hope. We built it to kill our own bad ideas before they cost us. The same engine now runs on yours, held to exactly the same standard.</p>
+        <div class="big-label">стратегий мы отбраковали — а они выглядели отлично.</div>
+        <p class="big-sub">Мы делали это не чтобы продавать надежду. Мы делали, чтобы убивать свои же плохие идеи, пока они не стоили нам денег. Тот же движок теперь проверяет твою — по абсолютно тому же стандарту.</p>
       </div>
       <ul class="proof-list">
-        <li><span class="rx" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg></span>Gross Sharpe <b>2.1</b> that collapsed to <b>0.4</b> once fees, funding and slippage were counted.</li>
-        <li><span class="rx" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg></span>A smooth equity curve hiding a <b>brutal left tail</b> the average quietly buried.</li>
-        <li><span class="rx" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg></span>A "winner" picked from <b>dozens of trials</b> that never cleared the deflated-Sharpe bar.</li>
-        <li><span class="rx" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg></span>A backtest that <b>broke on a single shifted fold</b> — fragile, not robust.</li>
+        <li><span class="rx" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg></span>Брутто-Sharpe <b>2.1</b>, обвалившийся до <b>0.4</b>, как только учли комиссии, фандинг и проскальзывание.</li>
+        <li><span class="rx" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg></span>Гладкая кривая капитала, прятавшая <b>жестокий левый хвост</b>, который среднее тихо похоронило.</li>
+        <li><span class="rx" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg></span>«Победитель», выбранный из <b>десятков попыток</b>, который так и не прошёл планку deflated-Sharpe.</li>
+        <li><span class="rx" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg></span>Бэктест, <b>сломавшийся на одном сдвинутом фолде</b> — хрупкий, а не устойчивый.</li>
       </ul>
     </div>
   </div>
@@ -533,74 +533,74 @@
 <!-- ================= SAMPLE VERDICT ================= -->
 <section class="block wrap">
   <div class="sec-head reveal">
-    <span class="kicker">Sample verdict</span>
-    <h2 class="sec-title">Two strategies. One <span class="serif">honest</span> answer each.</h2>
-    <p class="sec-sub">This is what comes back — a verdict you can act on, not a wall of numbers you have to interpret.</p>
+    <span class="kicker">Пример вердикта</span>
+    <h2 class="sec-title">Две стратегии. Один <span class="serif">честный</span> ответ на каждую.</h2>
+    <p class="sec-sub">Вот что приходит в ответ — вердикт, по которому можно действовать, а не стена чисел, которую надо расшифровывать.</p>
   </div>
   <div class="sample-grid">
     <div class="vcard self badge-shimmer reveal">
       <div class="vc-top">
         <span class="ring" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg></span>
-        <div class="vc-word">SELF-DECEPTION<small>Looks real, isn't</small></div>
+        <div class="vc-word">САМООБМАН<small>Кажется реальной, но нет</small></div>
       </div>
-      <p class="vc-reason">Gross numbers look outstanding — but the edge <b>does not survive</b> once costs and multiple-testing are honestly accounted for.</p>
+      <p class="vc-reason">Брутто-числа выглядят выдающимися — но край <b>не выживает</b>, как только честно учтены издержки и множественное тестирование.</p>
       <div class="vc-metrics">
-        <div class="vm">Net Sharpe<b>0.4</b></div>
-        <div class="vm">Worst CV fold<b>-1.2</b></div>
-        <div class="vm">Deflated bar<b>2.81</b></div>
+        <div class="vm">Нетто-Sharpe<b>0.4</b></div>
+        <div class="vm">Худший CV-фолд<b>-1.2</b></div>
+        <div class="vm">Планка честности<b>2.81</b></div>
       </div>
     </div>
     <div class="vcard real badge-shimmer reveal">
       <div class="vc-top">
         <span class="ring" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        <div class="vc-word">REAL<small>Survives honest OOS</small></div>
+        <div class="vc-word">РАБОЧАЯ<small>Прошла честный OOS</small></div>
       </div>
-      <p class="vc-reason">The edge <b>holds net of costs</b>, stays positive across every purged fold, and clears the deflated-Sharpe bar for the trials you ran.</p>
+      <p class="vc-reason">Край <b>держится за вычетом издержек</b>, остаётся положительным на каждом очищенном фолде и проходит планку deflated-Sharpe для числа твоих попыток.</p>
       <div class="vc-metrics">
-        <div class="vm">Net Sharpe<b>1.6</b></div>
-        <div class="vm">Worst CV fold<b>0.7</b></div>
-        <div class="vm">Deflated bar<b>1.42</b></div>
+        <div class="vm">Нетто-Sharpe<b>1.6</b></div>
+        <div class="vm">Худший CV-фолд<b>0.7</b></div>
+        <div class="vm">Планка честности<b>1.42</b></div>
       </div>
     </div>
   </div>
-  <p class="sample-note">Illustrative examples. Every verdict is probabilistic and carries the same honest caveats described below.</p>
+  <p class="sample-note">Иллюстративные примеры. Любой вердикт вероятностен и несёт те же честные оговорки, что описаны ниже.</p>
 </section>
 
 <!-- ================= PRICING ================= -->
 <section class="block wrap" id="pricing">
   <div class="sec-head reveal">
-    <span class="kicker">Pricing</span>
-    <h2 class="sec-title">Start free. Pay only when it's <span class="serif">worth it</span>.</h2>
-    <p class="sec-sub">One check is on us. The day an honest verdict saves you a single bad deployment, the rest pays for itself many times over.</p>
+    <span class="kicker">Цены</span>
+    <h2 class="sec-title">Начни бесплатно. Плати, только когда это <span class="serif">того стоит</span>.</h2>
+    <p class="sec-sub">Одна проверка — за наш счёт. В день, когда честный вердикт спасёт тебя от одного плохого запуска, всё остальное окупится многократно.</p>
   </div>
   <div class="price-grid">
     <div class="plan reveal">
-      <div class="tier">Free</div>
+      <div class="tier">Бесплатно</div>
       <div class="price"><span class="amt">$0</span></div>
-      <div class="price-sub">One honest check, no card.</div>
+      <div class="price-sub">Одна честная проверка, без карты.</div>
       <ul>
-        <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> 1 full validation</li>
-        <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Verdict + plain-language reason</li>
-        <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Core metrics on screen</li>
-        <li class="off"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg> No saved report</li>
+        <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> 1 полная проверка</li>
+        <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Вердикт + причина простым языком</li>
+        <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Основные метрики на экране</li>
+        <li class="off"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg> Без сохранённого отчёта</li>
       </ul>
-      <a class="btn btn-ghost" href="/validate">Validate free</a>
+      <a class="btn btn-ghost" href="validate_ru.html">Проверить бесплатно</a>
     </div>
 
     <div class="plan feat reveal">
-      <div class="tier">Full report</div>
-      <div class="price"><span class="amt">$15</span><span class="per">/check</span></div>
-      <div class="price-sub">All fees included. No subscription.</div>
+      <div class="tier">Полный отчёт</div>
+      <div class="price"><span class="amt">$15</span><span class="per">/проверка</span></div>
+      <div class="price-sub">Все комиссии включены. Без подписки.</div>
       <ul>
-        <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> 1 full validation</li>
-        <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Full report: purged-CV, deflated-Sharpe, CVaR, folds</li>
-        <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Plain-language reason + shareable verdict</li>
-        <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Pay once — no subscription, no card stored</li>
+        <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> 1 полная проверка</li>
+        <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Полный отчёт: purged-CV, deflated-Sharpe, CVaR, фолды</li>
+        <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Причина простым языком + вердикт для шеринга</li>
+        <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Платишь один раз — без подписки, карту не храним</li>
       </ul>
-      <a class="btn btn-gold" href="/validate">Buy a check</a>
+      <a class="btn btn-gold" href="validate_ru.html">Купить проверку</a>
     </div>
   </div>
-  <p class="price-foot">Pay per check — no subscription, no lock-in. No funds held, no trades executed. This is information — you keep every decision.</p>
+  <p class="price-foot">Оплата за проверку — без подписки и привязок. Деньги не храним, сделки не исполняем. Это информация — все решения остаются за тобой.</p>
 </section>
 
 <!-- ================= DISCLAIMER ================= -->
@@ -608,25 +608,25 @@
   <div class="disclaimer reveal">
     <div class="d-h">
       <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v.5M12 11.5v5" stroke-linecap="round"/></svg></span>
-      <h3>Informational analysis only</h3>
+      <h3>Только информационный анализ</h3>
     </div>
-    <p>isitalpha provides <b>informational analysis only</b>. It is not investment advice, not a recommendation, not an offer or solicitation, and not asset management. Nothing here is a suggestion to adopt, deploy, fund, continue, or abandon any strategy. We make <b>no promise of profit</b> of any kind.</p>
-    <p><b>Past performance does not guarantee future results.</b> Every verdict is probabilistic and rests on the return series you supply and on assumptions about costs, funding and execution that may not match your real conditions. A "REAL" verdict is not a certification of future profitability; a "DEAD" or "SELF-DECEPTION" verdict does not prove a strategy cannot work. Survivorship, data-quality, look-ahead and regime-change caveats apply.</p>
-    <p>You are solely responsible for your own decisions. Trading involves the risk of loss, including loss of capital. <b>We never hold client funds and never execute trades on your behalf.</b> Consider seeking advice from a licensed professional in your jurisdiction before acting.</p>
+    <p>isitalpha предоставляет <b>только информационный анализ</b>. Это не инвестиционный совет, не рекомендация, не оферта и не управление активами. Ничто здесь не является призывом принять, запустить, финансировать, продолжить или бросить какую-либо стратегию. Мы <b>не обещаем прибыли</b> в какой-либо форме.</p>
+    <p><b>Прошлые результаты не гарантируют будущих.</b> Любой вердикт вероятностен и опирается на предоставленный тобой ряд доходностей и на допущения об издержках, фандинге и исполнении, которые могут не совпасть с твоими реальными условиями. Вердикт «РАБОЧАЯ» — не сертификат будущей прибыльности; «МЁРТВАЯ» или «САМООБМАН» не доказывают, что стратегия не может работать. Действуют оговорки о выживании, качестве данных, заглядывании вперёд и смене режима.</p>
+    <p>Ты несёшь полную ответственность за свои решения. Торговля сопряжена с риском убытка, включая потерю капитала. <b>Мы никогда не храним средства клиентов и не исполняем сделки за тебя.</b> Перед действиями стоит обратиться к лицензированному специалисту в твоей юрисдикции.</p>
   </div>
 </section>
 
 <!-- ================= FINAL CTA ================= -->
 <section class="block wrap">
   <div class="final reveal">
-    <h2>Find out before the <span class="serif">market</span> does.</h2>
-    <p>The market will tell you the truth eventually — and charge you for the lesson. Get the honest verdict first. Your first check is free.</p>
+    <h2>Узнай раньше, чем это сделает <span class="serif">рынок</span>.</h2>
+    <p>Рынок рано или поздно скажет тебе правду — и выставит счёт за урок. Получи честный вердикт первым. Первая проверка бесплатна.</p>
     <div class="final-cta">
-      <a class="btn btn-gold btn-lg" href="/validate">
+      <a class="btn btn-gold btn-lg" href="validate_ru.html">
         <svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Validate free
+        Проверить бесплатно
       </a>
-      <a class="btn btn-ghost btn-lg" href="#pricing">See pricing</a>
+      <a class="btn btn-ghost btn-lg" href="#pricing">Смотреть цены</a>
     </div>
   </div>
 </section>
@@ -638,16 +638,16 @@
       <span class="mark" aria-hidden="true" style="display:inline-grid;place-items:center;width:24px;height:24px;border-radius:7px;background:linear-gradient(150deg,#1f8377,#0d3b36);border:1px solid rgba(90,214,196,.4)">
         <svg viewBox="0 0 24 24" fill="none" width="13" height="13"><path d="M4 14l5-5 4 4 7-7" stroke="#5ad6c4" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </span>
-      <span><b>isitalpha</b> · informational analysis, not investment advice</span>
+      <span><b>isitalpha</b> · информационный анализ, не инвестсовет</span>
     </div>
     <div class="foot-links">
-      <a href="#how">How it works</a>
-      <a href="#pricing">Pricing</a>
-      <a href="/validate">Validate</a>
-      <a href="/legal.html">Terms &amp; Privacy</a>
+      <a href="#how">Как это работает</a>
+      <a href="#pricing">Цены</a>
+      <a href="validate_ru.html">Проверить</a>
+      <a href="/legal.html">Условия и приватность</a>
     </div>
   </div>
-  <p class="foot-fine">isitalpha is an analytics tool. It does not hold client funds, does not execute trades, and does not provide investment advice or recommendations. Verdicts are probabilistic and based on data you provide; past performance does not guarantee future results. Trading involves the risk of loss. © 2026 isitalpha.</p>
+  <p class="foot-fine">isitalpha — аналитический инструмент. Не хранит средства клиентов, не исполняет сделки и не даёт инвестиционных советов или рекомендаций. Вердикты вероятностны и основаны на предоставленных тобой данных; прошлые результаты не гарантируют будущих. Торговля сопряжена с риском убытка. © 2026 isitalpha.</p>
 </footer>
 
 <script>

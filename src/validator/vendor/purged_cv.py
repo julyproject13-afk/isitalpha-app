@@ -15,8 +15,8 @@ from typing import Dict, List
 ANNUAL = 252
 
 
-def fold_sharpes(returns: List[float], k: int = 5, embargo: int = 3) -> List[float]:
-    """Sharpe по каждому из k временных фолдов (с эмбарго в начале фолда)."""
+def fold_sharpes(returns: List[float], k: int = 5, embargo: int = 3, ann: int = ANNUAL) -> List[float]:
+    """Sharpe по каждому из k временных фолдов (с эмбарго в начале фолда). ann = периодов в году (день=252/неделя=52/месяц=12)."""
     n = len(returns)
     if n < k * (embargo + 5):
         k = max(2, n // (embargo + 5))           # мало данных — меньше фолдов
@@ -30,7 +30,7 @@ def fold_sharpes(returns: List[float], k: int = 5, embargo: int = 3) -> List[flo
             continue
         m = st.mean(seg)
         sd = st.pstdev(seg)
-        out.append(m / sd * math.sqrt(ANNUAL) if sd > 1e-12 else 0.0)
+        out.append(m / sd * math.sqrt(ann) if sd > 1e-12 else 0.0)
     return out
 
 
