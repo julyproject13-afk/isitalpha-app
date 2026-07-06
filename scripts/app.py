@@ -24,7 +24,10 @@ sys.path.insert(0, os.path.join(ROOT, "src"))
 WEB = os.path.join(ROOT, "web")
 PAID_FILE = os.path.join(ROOT, "paid_orders.txt")   # оплаченные order_id (локальный учёт)
 
-from validator.validator import validate, parse_returns_csv      # noqa: E402
+from validator.validator import validate, regime_judge, parse_returns_csv      # noqa: E402
+from validator.badge import badge_svg, badge_embed_html          # noqa: E402
+from validator import plans as _plans                            # noqa: E402
+from validator import pay_card as _paycard                       # noqa: E402
 
 _CT = {".html": "text/html; charset=utf-8", ".json": "application/json; charset=utf-8"}
 
@@ -49,8 +52,9 @@ TG_TOKEN = os.environ.get("PULSE_TG_TOKEN", "")        # бот для увед�
 OWNER_CHAT_ID = os.environ.get("OWNER_CHAT_ID", "")    # чат владельца для алертов/сводки
 REPORT_KEY = os.environ.get("REPORT_KEY", "")          # защита /api/report (простой ключ)
 METRICS_FILE = os.path.join(ROOT, "metrics.json")      # бизнес-счётчики (локально)
+FUNNEL_FILE = os.path.join(ROOT, "funnel.json")        # пофазная воронка (анонимно, без PII)
 
-FREE_FIELDS = ("verdict", "headline", "n", "reason")
+FREE_FIELDS = ("verdict", "headline", "n", "reason", "percentile", "graveyard_n")
 
 # ---------- защита от DoS / абьюза (уровень приложения; nginx/CF — снаружи) ----------
 MAX_BODY = 1_048_576          # 1 MB — потолок тела POST (self.rfile.read по Content-Length)
@@ -210,6 +214,58 @@ def stats_report() -> str:
     )
 
 
+# ---------- ПОФАЗНАЯ ТЕЛЕМЕТРИЯ ВОРОНКИ (анонимно, без PII) ----------
+# Считаем ТОЛЬКО обезличенные счётчики шагов воронки, с разбивкой по utm_source.
+# Никаких IP, user-agent, cookie, id пользователей — только «сколько людей дошло до шага».
+# Файл funnel.json локальный, не в git (как metrics.json). Смысл: увидеть, ГДЕ рвётся.
+#
+# Шаги воронки (порядок = путь клиента):
+#   land       — зашёл на /validate (страница отдана)
+#   validate_click — нажал «Get honest verdict» (клиентское событие)
+#   validate_run   — сервер реально прогнал валидацию (свежий вердикт, не повтор оплаты)
+#   verdict_shown  — фронт показал вердикт-слово
+#   paywall_view   — упёрся в пейволл (увидел locked-экран с ценой)
+#   pay_click      — нажал кнопку «Pay $…» (создание счёта)
+#   paid           — оплата подтверждена (IPN finished/confirmed)
+FUNNEL_STEPS = ("land", "validate_click", "validate_run", "verdict_shown",
+                "paywall_view", "pay_click", "paid")
+
+
+def _funnel() -> dict:
+    try:
+        return json.load(open(FUNNEL_FILE, encoding="utf-8"))
+    except Exception:
+        return {"totals": {}, "sources": {}, "first_ts": 0, "last_ts": 0}
+
+
+def _save_funnel(f: dict):
+    try:
+        json.dump(f, open(FUNNEL_FILE, "w"))
+    except Exception:
+        pass
+
+
+def _bump_step(step: str, src: str = ""):
+    """Инкремент счётчика шага воронки (глобально + по источнику). Тихо игнорит чужие шаги."""
+    import time
+    if step not in FUNNEL_STEPS:
+        return
+    f = _funnel()
+    now = int(time.time())
+    if not f.get("first_ts"):
+        f["first_ts"] = now
+    f["last_ts"] = now
+    f.setdefault("totals", {})[step] = f.get("totals", {}).get(step, 0) + 1
+    row = f.setdefault("sources", {}).setdefault(_norm_src(src), {})
+    row[step] = row.get(step, 0) + 1
+    # держим карту источников компактной (не даём разрастись мусорным меткам)
+    if len(f["sources"]) > 200:
+        # оставляем 200 самых «наполненных» источников по суммарным событиям
+        top = sorted(f["sources"].items(), key=lambda kv: sum(kv[1].values()), reverse=True)[:200]
+        f["sources"] = dict(top)
+    _save_funnel(f)
+
+
 # ---------- учёт оплат (простой файл; для MVP достаточно) ----------
 def _paid_set():
     try:
@@ -279,13 +335,16 @@ def np_ipn_valid(raw: bytes, sig: str) -> bool:
 
 
 def gate(result: dict, paid: bool) -> dict:
-    """Не оплачено → только вердикт-слово + флаг locked + цена."""
+    """Не оплачено → только вердикт-слово + флаг locked + цена.
+    INSUFFICIENT (<30 точек — анализ не запускался) отдаём бесплатно.
+    UNCLEAR (поймали фейк — работа сделана) идёт через пейволл: вердикт-слово видно, разбор платный."""
     if paid or result.get("verdict") == "INSUFFICIENT":
         return result
     g = {k: result[k] for k in FREE_FIELDS if k in result}
     g["locked"] = True
     g["price_usd"] = PRICE_USD
     g["pay_ready"] = bool(NP_API_KEY)
+    g["pay_card_ready"] = _paycard.card_enabled()   # кнопка «картой» показывается, только если сконфигурено
     return g
 
 
@@ -340,11 +399,10 @@ class Handler(BaseHTTPRequestHandler):
             rep = stats_report()
             if qs.get("send", [""])[0] == "1":
                 tg_send(rep)
-            return self._send(200, {"report": rep, "metrics": _metrics()})
+            return self._send(200, {"report": rep, "metrics": _metrics(), "funnel": _funnel()})
         if p == "/api/ping":
-            # Мост «рабочая сессия → владелец»: любая моя сессия шлёт строку в Telegram через сервер.
-            # Защита: тот же REPORT_KEY (fail-closed) + rate-limit. Пример:
-            #   curl -H "X-Report-Key: <ключ>" "https://isitalpha.com/api/ping?msg=Приходи+к+ПК"
+            # Мост «рабочая сессия → владелец»: сессия шлёт строку в Telegram через сервер.
+            # Защита: REPORT_KEY (fail-closed) + rate-limit.
             if not _rate_ok(self._client_ip()):
                 return self._send(429, {"error": "too many requests"})
             qs = urllib.parse.parse_qs(self.path.split("?", 1)[1]) if "?" in self.path else {}
@@ -357,13 +415,39 @@ class Handler(BaseHTTPRequestHandler):
             safe = msg.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
             tg_send("🛠 <b>Сессия Claude</b>\n" + safe)
             return self._send(200, {"ok": True})
+        if p == "/api/badge.svg":
+            # публичный SVG-бейдж «Validated by isitalpha» — вирусная петля (каждый показ тянет наш домен)
+            qs = urllib.parse.parse_qs(self.path.split("?", 1)[1]) if "?" in self.path else {}
+            verdict = qs.get("verdict", ["UNCLEAR"])[0]
+            try:
+                pct = float(qs["pct"][0]) if qs.get("pct") else None
+            except Exception:
+                pct = None
+            try:
+                gn = int(qs["n"][0]) if qs.get("n") else None
+            except Exception:
+                gn = None
+            svg = badge_svg(verdict, pct, gn).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "image/svg+xml; charset=utf-8")
+            self.send_header("Cache-Control", "public, max-age=3600")
+            self.send_header("Content-Length", str(len(svg)))
+            self.end_headers()
+            return self.wfile.write(svg)
+        if p == "/api/plans":
+            return self._send(200, {"plans": _plans.ladder_public()})
         if p in ("/", "/index.html"):
             return self._file("landing.html")
         if p == "/validate":
             qs = urllib.parse.parse_qs(self.path.split("?", 1)[1]) if "?" in self.path else {}
             src = qs.get("utm_source", [""])[0]
-            if src:                         # заход с рекламной ссылки — засчитываем визит каналу
+            # мониторинг/боты не должны загрязнять воронку живыми людьми
+            ua = self.headers.get("User-Agent", "")
+            is_probe = "healthcheck" in ua.lower() or "uptimerobot" in ua.lower()
+            if src and not is_probe:        # заход с рекламной ссылки — засчитываем визит каналу
                 _bump_visit(src)
+            if not is_probe:
+                _bump_step("land", src)     # пофазная воронка: приземление (даже direct/без utm)
             return self._file("validate.html")
         if p == "/report":
             return self._file("report.html")
@@ -381,9 +465,23 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self._too_big():                              # тело больше 1 MB — режем сразу
             return self._send(413, {"error": "payload too large"})
-        # rate-limit на дорогие/абьюзабельные ручки (IPN и unlock не лимитируем — HMAC/дёшево)
+        # rate-limit на дорогие/абьюзабельные ручки (IPN/callback/unlock не лимитируем — HMAC/дёшево)
         if self.path in ("/api/validate", "/api/checkout") and not _rate_ok(self._client_ip()):
             return self._send(429, {"error": "too many requests", "retry_after": RL_WINDOW})
+        if self.path == "/api/track":
+            # анонимный beacon клиентских шагов воронки (validate_click, verdict_shown).
+            # ТОЛЬКО step + src. Никакого PII/IP/тела строки — просто счётчик. Всегда 204.
+            try:
+                b = json.loads(self._raw() or b"{}")
+            except Exception:
+                b = {}
+            step = str(b.get("step", "")).strip()
+            src = str(b.get("src", "")).strip()
+            # клиенту доверяем только «мягкие» шаги; жёсткие (validate_run/paywall_view/pay_click/paid)
+            # считает сервер сам — так их нельзя накрутить с фронта.
+            if step in ("validate_click", "verdict_shown"):
+                _bump_step(step, src)
+            return self._send(204, b"")
 
         if self.path == "/api/validate":
             try:
@@ -395,14 +493,27 @@ class Handler(BaseHTTPRequestHandler):
                 rets = rets[:MAX_POINTS]
             n_trials = int(body.get("n_trials", 10) or 10)
             n_trials = max(1, min(n_trials, 1000))        # ограничим диапазон испытаний
+            period = str(body.get("period", "day")).strip().lower()   # день/неделя/месяц → правильная аннуализация
+            ppy = {"day": 252, "week": 52, "month": 12, "quarter": 4}.get(period, 252)
             order = str(body.get("order", "")).strip()
             src = str(body.get("src", "")).strip()      # utm_source, проброшенный фронтом
-            paid = is_paid(order)
-            result = validate(rets, n_trials=n_trials)
+            tier = str(body.get("tier", "")).strip().lower()   # "regime" → платный research-тир (approved-with-caveats)
+            # SIM_UNLOCK=1 — локальный тест-стенд показывает полный отчёт без оплаты. В бою переменная не задана → обычный пейволл.
+            paid = is_paid(order) or os.environ.get("SIM_UNLOCK") == "1"
+            # regime-тир доступен только оплатившим; неоплаченным всегда строгий validate() (free-вердикт под пейволлом)
+            if tier == "regime" and paid:
+                result = regime_judge(rets, n_trials=n_trials, periods_per_year=ppy)
+            else:
+                result = validate(rets, n_trials=n_trials, periods_per_year=ppy)
             # считаем попытку (лид) только на СВЕЖий вердикт, не на повторный опрос оплаченного заказа
             if result.get("verdict") != "INSUFFICIENT" and not order:
                 _bump_attempt(src)
-            return self._send(200, gate(result, paid))
+                _bump_step("validate_run", src)     # воронка: сервер реально прогнал валидацию
+            gated = gate(result, paid)
+            # серверный сигнал пейволла: неоплаченный locked-вердикт = человек упёрся в стену
+            if gated.get("locked") and not order:
+                _bump_step("paywall_view", src)
+            return self._send(200, gated)
 
         if self.path == "/api/checkout":
             try:
@@ -411,12 +522,71 @@ class Handler(BaseHTTPRequestHandler):
                 cbody = {}
             coin = str(cbody.get("coin", "")).strip().lower()   # usdttrc20 / usdcmatic от кнопки, либо пусто
             src = str(cbody.get("src", "")).strip()              # utm_source для атрибуции продажи каналу
+            _bump_step("pay_click", src)                         # воронка: нажал «Pay $…» (намерение оплатить)
             order_id = "isa_" + _secrets.token_hex(8)
             url = np_create_invoice(order_id, coin)
             if not url:
                 return self._send(200, {"ok": False, "reason": "payment_not_configured"})
             _tag_order(order_id, src)
             return self._send(200, {"ok": True, "order": order_id, "invoice_url": url})
+
+        if self.path == "/api/pay/card-start":
+            # карта (MoR/Lemon Squeezy): генерим order → ссылка чекаута с нашим order_id → фронт редиректит
+            try:
+                cbody = json.loads(self._raw() or b"{}")
+            except Exception:
+                cbody = {}
+            if not _paycard.card_enabled():
+                return self._send(200, {"ok": False, "reason": "card_not_configured"})
+            plan = (str(cbody.get("plan", "report")).strip().lower() or "report")
+            src = str(cbody.get("src", "")).strip()
+            _bump_step("pay_click", src)
+            order_id = "isa_" + _secrets.token_hex(8)
+            url = _paycard.checkout_url_for(plan, order_id, site_url=SITE_URL)
+            if not url:
+                return self._send(200, {"ok": False, "reason": "card_not_configured"})
+            _tag_order(order_id, src)
+            return self._send(200, {"ok": True, "order": order_id, "url": url})
+
+        if self.path == "/api/pay/callback":
+            # вебхук MoR: проверяем HMAC-подпись → тот же путь разблокировки, что крипто (_mark_paid)
+            raw = self._raw()
+            sig = self.headers.get("X-Signature", "")
+            if not _paycard.verify_signature(raw, sig):
+                return self._send(403, {"ok": False})
+            try:
+                d = json.loads(raw)
+            except Exception:
+                return self._send(400, {"ok": False})
+            ev = _paycard.normalize_event(d)
+            order = str(ev.get("order_id", "")).strip()
+            if ev.get("paid") and order:
+                _mark_paid(order)
+                m = _record_sale(order)          # None если дубль вебхука (идемпотентность)
+                if m is not None:
+                    _bump_step("paid", m.get("order_src", {}).get(order, ""))
+                    tg_send(f"💳 <b>Продажа (карта)!</b> заказ {order}\n"
+                            f"Всего продаж: <b>{m['sales']}</b> · выручка <b>${m['revenue']}</b>")
+            return self._send(200, {"ok": True})
+
+        if self.path == "/api/badge":
+            # вернуть встраиваемые сниппеты бейджа (SVG + <img> + markdown) для «Validated by isitalpha»
+            try:
+                b = json.loads(self._raw() or b"{}")
+            except Exception:
+                b = {}
+            verdict = str(b.get("verdict", "UNCLEAR")).strip()
+            pct = b.get("percentile")
+            gn = b.get("graveyard_n")
+            try:
+                pct = float(pct) if pct is not None else None
+            except Exception:
+                pct = None
+            try:
+                gn = int(gn) if gn is not None else None
+            except Exception:
+                gn = None
+            return self._send(200, badge_embed_html(verdict, pct, gn, base_url=SITE_URL))
 
         if self.path == "/api/unlock":
             try:
@@ -440,6 +610,8 @@ class Handler(BaseHTTPRequestHandler):
                 _mark_paid(order)
                 m = _record_sale(order)          # None если дубль вебхука
                 if m is not None:
+                    # воронка: оплата подтверждена. Источник — из карты атрибуции заказа (order_src).
+                    _bump_step("paid", m.get("order_src", {}).get(order, ""))
                     tg_send(f"💰 <b>Продажа!</b> ${PRICE_USD} · заказ {order}\n"
                             f"Всего продаж: <b>{m['sales']}</b> · выручка <b>${m['revenue']}</b>")
                 try:

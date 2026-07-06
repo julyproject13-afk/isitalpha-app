@@ -8,13 +8,34 @@
 """
 from __future__ import annotations
 
+import bisect
+import json
 import math
+import os
 import statistics as st
 from typing import Dict, List, Sequence
 
 from .vendor.purged_cv import fold_sharpes
 
 ANNUAL = 252
+
+# ── «Кладбище краёв»: распределение net-Sharpe 5763 реально протестированных стратегий (для перцентиля) ──
+_GRAVE = None
+
+
+def _grave_percentile(net_sharpe: float):
+    """Процент кладбища, который бьёт стратегия с данным net-Sharpe. None — если данных нет."""
+    global _GRAVE
+    if _GRAVE is None:
+        try:
+            p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "graveyard_dist.json")
+            _GRAVE = sorted(json.load(open(p)).get("sharpes", []))
+        except Exception:
+            _GRAVE = []
+    if not _GRAVE:
+        return None, 0
+    idx = bisect.bisect_left(_GRAVE, net_sharpe)
+    return round(100.0 * idx / len(_GRAVE), 1), len(_GRAVE)
 MIN_FOR_REAL = 60        # меньше — не сертифицируем как REAL (мало данных), максимум BORDERLINE
 SHARPE_CAP = 8.0         # нетто-Sharpe выше — неправдоподобно для реальной торговли -> не REAL
 
@@ -240,4 +261,167 @@ def validate(returns: Sequence[float], n_trials: int = 10, cost_bps: float = 5.0
     }
     if soft:
         out["data_warning"] = soft      # передаём предупреждения о качестве данных в отчёт
+    pct, gn = _grave_percentile(net_sh)   # 🎣 фишка: перцентиль против 5763 убитых стратегий
+    if pct is not None:
+        out["percentile"] = pct
+        out["graveyard_n"] = gn
+    return out
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ПЛАТНЫЙ ТИР «одобрено с оговорками» — regime-conditional вердикт.
+# Прокинут из research_judge (golden-mutation): гейт по МЕДИАНЕ фолдов (не min) +
+# режим-гейт. В продукте у клиента НЕТ параллельного VIX, поэтому режим определяем
+# честно ИЗ САМОГО РЯДА: периоды высокой собственной волатильности = «стресс».
+# Это отдельный, БОЛЕЕ МЯГКИЙ судья: строгий validate() говорит REAL/SELF-DECEPTION
+# для широкой публики (min-fold пугает намеренно); regime_judge даёт нюанс —
+# «край реальный, но только в спокойном режиме + вот стоп-сигналы».
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _regime_split_self(net: Sequence[float], window: int = 20, calm_q: float = 0.66):
+    """Разбить ряд на СПОКОЙНЫЕ/СТРЕССОВЫЕ периоды по СОБСТВЕННОЙ скользящей волатильности.
+
+    Без внешнего VIX: считаем rolling-std на трейлинг-окне (только прошлое, без look-ahead),
+    порог = квантиль calm_q этих значений. Период 'стресс', если его трейлинг-vol в верхнем хвосте.
+    Возвращает (calm, stress, threshold_used) или (None, None, None) если данных мало.
+    """
+    n = len(net)
+    if n < window * 3:
+        return None, None, None
+    rolls: List[float] = []
+    for i in range(n):
+        a = max(0, i - window)
+        seg = net[a:i]                       # только ПРОШЛОЕ до периода i
+        rolls.append(st.pstdev(seg) if len(seg) >= 2 else 0.0)
+    valid = sorted(r for r in rolls[window:] if r > 0)
+    if len(valid) < 5:
+        return None, None, None
+    thr = valid[min(len(valid) - 1, int(len(valid) * calm_q))]
+    calm, stress = [], []
+    for i in range(window, n):
+        (stress if rolls[i] > thr else calm).append(net[i])
+    return calm, stress, round(thr, 6)
+
+
+def regime_judge(returns: Sequence[float], vix: "Sequence[float] | None" = None,
+                 n_trials: int = 10, cost_bps: float = 5.0, k: int = 5, embargo: int = 3,
+                 max_dd: float = 0.20, max_cvar: float = 0.05,
+                 vix_calm: float = 25.0, periods_per_year: int = ANNUAL) -> Dict:
+    """RESEARCH-тир вердикта (платный «approved with caveats»).
+
+    Отличия от строгого validate(): (1) главный CV-гейт = МЕДИАНА фолдов, не min;
+    (2) режим-гейт — Sharpe отдельно в спокойном и стрессовом режиме. Если край держится
+    в спокойном, но валится в стрессе → REGIME-CONDITIONAL (реальный, но не тейл-хедж) +
+    конкретные СТОП-СИГНАЛЫ. Режим берём из внешнего vix, а без него — из собственной vol ряда.
+    """
+    ann = periods_per_year if periods_per_year and periods_per_year > 0 else ANNUAL
+    if len(returns) < 30:
+        return {"verdict": "INSUFFICIENT", "tier": "regime",
+                "reason": "Not enough data (<30 points) — an honest CV isn't possible.", "n": len(returns)}
+
+    hard, soft = data_sanity(returns, ann)
+    if hard:
+        return {"verdict": "UNCLEAR", "tier": "regime",
+                "headline": "⚠️ This doesn't look like a real return series — we won't guess.",
+                "reason": " ".join(hard), "reasons": hard, "n": len(returns),
+                "note": "Paste per-period returns, not prices/equity/placeholders. Not investment advice."}
+
+    net = _apply_costs(returns, cost_bps)
+    fs = fold_sharpes(net, k, embargo, ann)
+    if not fs:
+        return {"verdict": "INSUFFICIENT", "tier": "regime",
+                "reason": "Not enough folds for cross-validation.", "n": len(net)}
+
+    median_fold = round(st.median(fs), 3)
+    min_fold = round(min(fs), 3)
+    threshold = round(_deflated_threshold(n_trials), 3)
+    dd = round(_max_drawdown(_equity(net)), 4)
+    cvar = round(_cvar(net), 4)
+    net_sh = round(_annual_sharpe(net, ann), 3)
+    gross = round(_annual_sharpe(returns, ann), 3)
+
+    passed_cv = median_fold >= threshold        # ← МЕДИАНА (мягче min), правка research_judge
+    passed_dd = dd <= max_dd
+    passed_cvar = cvar >= -max_cvar
+    worst_fold_warn = min_fold < 0
+
+    # ── режим-гейт ──
+    calm_sh = stress_sh = None
+    regime = None
+    regime_source = None
+    if vix is not None:
+        calm_r, stress_r = [], []
+        for r, v in zip(net, vix):
+            if v is None:
+                continue
+            (calm_r if v <= vix_calm else stress_r).append(r)
+        regime_source = "external_vix"
+    else:
+        calm_r, stress_r, thr = _regime_split_self(net)
+        if calm_r is not None:
+            regime_source = "self_volatility"
+    if calm_r is not None and stress_r is not None:
+        calm_sh = round(_annual_sharpe(calm_r, ann), 3) if len(calm_r) >= 2 else None
+        stress_sh = round(_annual_sharpe(stress_r, ann), 3) if len(stress_r) >= 2 else None
+        regime = {"source": regime_source, "n_calm": len(calm_r), "n_stress": len(stress_r),
+                  "calm_sharpe": calm_sh, "stress_sharpe": stress_sh}
+
+    reasons: List[str] = []
+    stop_signals: List[str] = []
+    if not passed_cv:
+        reasons.append("Median CV fold %.2f < deflated bar %.2f — the edge doesn't hold in a typical period."
+                       % (median_fold, threshold))
+    if not passed_dd:
+        reasons.append("Drawdown %.0f%% > %.0f%% — tail incompatible with capital preservation." % (dd * 100, max_dd * 100))
+    if not passed_cvar:
+        reasons.append("CVaR %.1f%% worse than −%.0f%% — heavy left tail." % (cvar * 100, max_cvar * 100))
+    if worst_fold_warn:
+        reasons.append("Worst fold %.2f < 0 — at least one period where it fails (overfit/regime indicator; "
+                       "documented, not the main gate)." % min_fold)
+
+    stress_fail = (stress_sh is not None and stress_sh < 0)
+    if passed_cv and passed_dd and passed_cvar:
+        if stress_fail:
+            verdict = "REGIME-CONDITIONAL"
+            headline = ("🟠 Approved with caveats — REGIME-CONDITIONAL. The edge holds in the calm regime "
+                        "(calm Sharpe %s) but breaks in stress (stress Sharpe %.2f). Real, but NOT a tail hedge — "
+                        "you need external tail protection." % (calm_sh, stress_sh))
+            stop_signals = [
+                "Cut / halt the strategy when realized volatility spikes above your calm-regime band "
+                "(the stress bucket is where it lost money in-sample).",
+                "Pair it with an explicit tail hedge (long vol / OTM puts) — this edge does not survive stress alone.",
+                "Re-check monthly: if the calm-vs-stress gap widens, the edge is decaying.",
+            ]
+        else:
+            verdict = "REAL"
+            headline = ("✅ REAL (research tier): median fold ≥ deflated bar, DD/CVaR in range"
+                        + (", and it holds in stress too" if stress_sh is not None else "")
+                        + ". Historical robustness only — not hidden beta/capacity.")
+    elif net_sh <= 0:
+        verdict = "DEAD"
+        headline = "❌ Dead: no edge left after costs."
+    elif median_fold > 0 and min_fold < 0:
+        verdict = "SELF-DECEPTION"
+        headline = "🔴 SELF-DECEPTION: positive median but losing folds (overfit / regime-dependent)."
+    else:
+        verdict = "BORDERLINE"
+        headline = "🟡 BORDERLINE: weak / unstable — don't rely on it without more data."
+
+    out = {
+        "verdict": verdict, "tier": "regime", "headline": headline,
+        "reasons": reasons or ["Passed every gate."],
+        "stop_signals": stop_signals, "n": len(returns),
+        "gross_sharpe": gross, "net_sharpe": net_sh,
+        "cv_median_fold": median_fold, "cv_worst_fold": min_fold, "cv_all_folds": [round(f, 3) for f in fs],
+        "deflated_threshold": threshold, "max_drawdown": dd, "cvar": cvar,
+        "regime": regime, "n_trials": n_trials,
+        "note": "Research tier: median-fold gate (not min) + regime gate. The strict free/standard verdict "
+                "(min-fold) is harsher on purpose. Not investment advice.",
+    }
+    if soft:
+        out["data_warning"] = soft
+    pct, gn = _grave_percentile(net_sh)
+    if pct is not None:
+        out["percentile"] = pct
+        out["graveyard_n"] = gn
     return out
