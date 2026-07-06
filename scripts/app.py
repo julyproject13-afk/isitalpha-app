@@ -28,6 +28,7 @@ from validator.validator import validate, regime_judge, parse_returns_csv      #
 from validator.badge import badge_svg, badge_embed_html          # noqa: E402
 from validator import plans as _plans                            # noqa: E402
 from validator import pay_card as _paycard                       # noqa: E402
+from validator import pay_cryptomus as _paycm                    # noqa: E402
 
 _CT = {".html": "text/html; charset=utf-8", ".json": "application/json; charset=utf-8"}
 
@@ -344,7 +345,7 @@ def gate(result: dict, paid: bool) -> dict:
     g["locked"] = True
     g["price_usd"] = PRICE_USD
     g["pay_ready"] = bool(NP_API_KEY)
-    g["pay_card_ready"] = _paycard.card_enabled()   # кнопка «картой» показывается, только если сконфигурено
+    g["pay_card_ready"] = _paycm.cryptomus_enabled() or _paycard.card_enabled()   # карта: Cryptomus ИЛИ MoR
     return g
 
 
@@ -531,22 +532,49 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"ok": True, "order": order_id, "invoice_url": url})
 
         if self.path == "/api/pay/card-start":
-            # карта (MoR/Lemon Squeezy): генерим order → ссылка чекаута с нашим order_id → фронт редиректит
+            # карта: генерим order → страница оплаты картой → фронт редиректит. Клиент платит картой.
+            # Приоритет Cryptomus (card→USDT, RF, invoice с order_id для авто-разблокировки), иначе MoR/LS.
             try:
                 cbody = json.loads(self._raw() or b"{}")
             except Exception:
                 cbody = {}
-            if not _paycard.card_enabled():
-                return self._send(200, {"ok": False, "reason": "card_not_configured"})
             plan = (str(cbody.get("plan", "report")).strip().lower() or "report")
             src = str(cbody.get("src", "")).strip()
-            _bump_step("pay_click", src)
             order_id = "isa_" + _secrets.token_hex(8)
-            url = _paycard.checkout_url_for(plan, order_id, site_url=SITE_URL)
+            url = None
+            if _paycm.cryptomus_enabled():
+                url = _paycm.create_invoice(
+                    order_id, PRICE_USD, currency="USD",
+                    callback_url=f"{SITE_URL}/api/pay/cryptomus",
+                    return_url=f"{SITE_URL}/validate",
+                    success_url=f"{SITE_URL}/validate?paid={order_id}")
+            elif _paycard.card_enabled():
+                url = _paycard.checkout_url_for(plan, order_id, site_url=SITE_URL)
             if not url:
                 return self._send(200, {"ok": False, "reason": "card_not_configured"})
+            _bump_step("pay_click", src)
             _tag_order(order_id, src)
             return self._send(200, {"ok": True, "order": order_id, "url": url})
+
+        if self.path == "/api/pay/cryptomus":
+            # вебхук Cryptomus: проверка md5-подписи → тот же путь разблокировки (_mark_paid)
+            raw = self._raw()
+            if not _paycm.verify_webhook(raw):
+                return self._send(403, {"ok": False})
+            try:
+                d = json.loads(raw)
+            except Exception:
+                return self._send(400, {"ok": False})
+            ev = _paycm.normalize_event(d)
+            order = str(ev.get("order_id", "")).strip()
+            if ev.get("paid") and order:
+                _mark_paid(order)
+                m = _record_sale(order)          # None если дубль вебхука (идемпотентность)
+                if m is not None:
+                    _bump_step("paid", m.get("order_src", {}).get(order, ""))
+                    tg_send(f"💳 <b>Продажа (карта/Cryptomus)!</b> заказ {order}\n"
+                            f"Всего продаж: <b>{m['sales']}</b> · выручка <b>${m['revenue']}</b>")
+            return self._send(200, {"ok": True})
 
         if self.path == "/api/pay/callback":
             # вебхук MoR: проверяем HMAC-подпись → тот же путь разблокировки, что крипто (_mark_paid)
