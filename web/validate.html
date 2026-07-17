@@ -208,7 +208,17 @@
         m("Tail-adj Sharpe", j.tail_adj_sharpe)+
       '</div>'+
       shareBadge(j)+
+      followBlock()+
       '<div class="disc">'+(j.note||"")+'</div>';
+  }
+
+  // ✈️ подписка на Telegram-канал: показываем сразу после вердикта (пик интереса) — кормит канал трафиком
+  function followBlock(){
+    return '<div style="margin-top:16px;padding:14px 16px;border-radius:12px;border:1px solid rgba(90,214,196,.35);background:rgba(90,214,196,.06);display:flex;align-items:center;gap:12px;flex-wrap:wrap">'+
+      '<div style="flex:1;min-width:200px"><div style="font-weight:700;font-size:14px;color:var(--ink-soft)">✈️ A dead strategy, dissected — every week</div>'+
+      '<div style="font-size:12.5px;color:var(--muted-2);margin-top:2px">We autopsy one strategy that looked great and died. Follow so you spot it before your money does.</div></div>'+
+      '<a href="https://t.me/isitalpha" target="_blank" rel="noopener" style="white-space:nowrap;background:rgba(90,214,196,.16);border:1px solid rgba(90,214,196,.5);color:var(--teal);font-size:13px;font-weight:700;text-decoration:none;padding:9px 16px;border-radius:9px">Follow @isitalpha</a>'+
+      '</div>';
   }
 
   // 🟠 regime-тир: показать calm-vs-stress Sharpe + стоп-сигналы (approved-with-caveats)
