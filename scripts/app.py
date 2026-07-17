@@ -30,7 +30,8 @@ from validator import plans as _plans                            # noqa: E402
 from validator import pay_card as _paycard                       # noqa: E402
 from validator import pay_cryptomus as _paycm                    # noqa: E402
 
-_CT = {".html": "text/html; charset=utf-8", ".json": "application/json; charset=utf-8"}
+_CT = {".html": "text/html; charset=utf-8", ".json": "application/json; charset=utf-8",
+       ".txt": "text/plain; charset=utf-8", ".xml": "application/xml; charset=utf-8"}
 
 
 def _load_env():

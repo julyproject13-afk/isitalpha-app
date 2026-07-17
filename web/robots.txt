@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /report
+
+Sitemap: https://isitalpha.com/sitemap.xml
