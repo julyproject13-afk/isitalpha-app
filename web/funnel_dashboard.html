@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>isitalpha — воронка</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 2rem; background: #0f1115; color: #e8e8e8; }
+  h1, h2 { color: #fff; }
+  table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 1rem 0; }
+  th, td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #2a2d35; text-align: left; }
+  th { color: #9aa0a6; font-weight: 600; }
+  tr:hover { background: #1a1d24; }
+  .warn { color: #f9ab00; background: #2a2208; padding: 0.75rem; border-radius: 6px; max-width: 900px; }
+  .metric { display: inline-block; margin-right: 2rem; }
+  .metric b { font-size: 1.4rem; color: #fff; }
+</style>
+</head>
+<body>
+  <h1>isitalpha — воронка (funnel.json)</h1>
+  <p class='warn'>⚠️ Данных почти нет — это dev/тестовый набор. Живые цифры нужно брать с сервера (/opt/isitalpha/funnel.json).</p>
+  <div>
+    <span class="metric"><b>9</b><br>попыток</span>
+    <span class="metric"><b>0</b><br>продаж</span>
+    <span class="metric"><b>$0</b><br>выручка</span>
+    <span class="metric"><b>0.0%</b><br>CR попытка→продажа</span>
+  </div>
+
+  <h2>Сколько дошло до каждого шага</h2>
+  <table>
+    <tr><th>Шаг</th><th>Кол-во</th><th>% от land</th></tr>
+    <tr><td>Зашли на /validate</td><td>1</td><td>100.0%</td></tr>
+<tr><td>Нажали «получить вердикт»</td><td>0</td><td>0.0%</td></tr>
+<tr><td>Запустили валидацию</td><td>2</td><td>200.0%</td></tr>
+<tr><td>Увидели вердикт</td><td>0</td><td>0.0%</td></tr>
+<tr><td>Упёрлись в пейволл</td><td>2</td><td>200.0%</td></tr>
+<tr><td>Нажали «оплатить»</td><td>0</td><td>0.0%</td></tr>
+<tr><td>Оплатили</td><td>0</td><td>0.0%</td></tr>
+  </table>
+
+  <h2>Конверсия шаг → шаг (где утекают)</h2>
+  <table>
+    <tr><th>Из</th><th>В</th><th>Было</th><th>Стало</th><th>Конверсия</th><th>Отвал</th></tr>
+    <tr><td>Зашли на /validate</td><td>Нажали «получить вердикт»</td><td>1</td><td>0</td><td>0.0%</td><td>100.0%</td></tr>
+<tr><td>Нажали «получить вердикт»</td><td>Запустили валидацию</td><td>0</td><td>2</td><td>—%</td><td>—%</td></tr>
+<tr><td>Запустили валидацию</td><td>Увидели вердикт</td><td>2</td><td>0</td><td>0.0%</td><td>100.0%</td></tr>
+<tr><td>Увидели вердикт</td><td>Упёрлись в пейволл</td><td>0</td><td>2</td><td>—%</td><td>—%</td></tr>
+<tr><td>Упёрлись в пейволл</td><td>Нажали «оплатить»</td><td>2</td><td>0</td><td>0.0%</td><td>100.0%</td></tr>
+<tr><td>Нажали «оплатить»</td><td>Оплатили</td><td>0</td><td>0</td><td>—%</td><td>—%</td></tr>
+  </table>
+
+  <h2>По каналам (utm_source)</h2>
+  <table>
+    <tr><th>Канал</th><th>land</th><th>→ run</th><th>→ paywall</th><th>→ paid</th></tr>
+    <tr><td>direct</td><td>1</td><td>200.0%</td><td>200.0%</td><td>0.0%</td></tr>
+  </table>
+
+  <p><small>Обновляется: python3 scripts/funnel_dashboard.py</small></p>
+</body>
+</html>

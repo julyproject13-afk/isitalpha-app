@@ -11,3 +11,4 @@ pulse/pulse_offset.txt
 # локальный учёт оплат
 paid_orders.txt
 metrics.json
+funnel.json
