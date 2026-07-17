@@ -21,6 +21,11 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://isitalpha.com/learn/is-a-sharpe-ratio-of-2-good</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://isitalpha.com/legal.html</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>

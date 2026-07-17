@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Is a Sharpe Ratio of 2 Good? The Question Nobody Asks | isitalpha</title>
+<meta name="description" content="A Sharpe ratio of 2 sounds excellent — but whether it's real depends on how many strategies you tried to find it. Here's how deflated Sharpe separates skill from luck.">
+<link rel="canonical" href="https://isitalpha.com/learn/is-a-sharpe-ratio-of-2-good">
+<meta property="og:title" content="Is a Sharpe Ratio of 2 Good? The Question Nobody Asks">
+<meta property="og:description" content="A Sharpe of 2 sounds great — until you count how many strategies you tested. Deflated Sharpe corrects for the search.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://isitalpha.com/learn/is-a-sharpe-ratio-of-2-good">
+<style>
+  :root{--bg:#070b10;--ink:#e9eef3;--ink-soft:#c3ccd6;--muted:#8593a1;--teal:#5ad6c4;--teal-deep:#2aa895;--line:rgba(255,255,255,.09);--surface:#0d141c}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.7 Inter,-apple-system,system-ui,sans-serif}
+  .wrap{max-width:720px;margin:0 auto;padding:28px 20px 80px}
+  nav{max-width:720px;margin:0 auto;padding:18px 20px;display:flex;justify-content:space-between;align-items:center}
+  .logo{font-weight:800;letter-spacing:-.3px}.logo span{color:var(--teal)}
+  nav a{color:var(--muted);text-decoration:none;font-size:14px}
+  h1{font-size:30px;line-height:1.25;letter-spacing:-.5px;margin:14px 0 8px}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:26px}
+  h2{font-size:21px;margin:34px 0 10px;letter-spacing:-.3px}
+  p{color:var(--ink-soft)}
+  .lead{font-size:18px;color:var(--ink)}
+  ul{color:var(--ink-soft);padding-left:20px}li{margin:7px 0}
+  code{background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font:13px 'JetBrains Mono',monospace;color:var(--teal)}
+  .cta{margin:36px 0;padding:24px;border-radius:16px;border:1px solid var(--line);background:linear-gradient(180deg,#0e1620,#0a121a);text-align:center}
+  .cta .t{font-weight:700;font-size:18px}
+  .cta p{margin:8px 0 16px;color:var(--muted);font-size:14px}
+  .btn{display:inline-block;background:linear-gradient(180deg,#eee0c0,#d8b878);color:#1a1206;font-weight:700;padding:13px 26px;border-radius:12px;text-decoration:none}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:14px 0}
+  .card .n{color:var(--teal);font-weight:700;font-size:13px;letter-spacing:.4px}
+  footer{border-top:1px solid var(--line);margin-top:50px;padding-top:18px;color:var(--muted);font-size:13px}
+  footer a{color:var(--muted)}
+  a{color:var(--teal)}
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo">isitalpha<span>.</span></div>
+  <a href="/validate">Test a strategy →</a>
+</nav>
+<div class="wrap">
+  <h1>Is a Sharpe Ratio of 2 Good? The Question Nobody Asks</h1>
+  <div class="sub">Short answer: it depends on something most people never measure — how hard you searched to find it.</div>
+
+  <p class="lead">On paper, a Sharpe ratio of 2 looks excellent. Most professional funds would be thrilled with a sustained Sharpe near 1. So a backtest showing 2 feels like you've found something rare. Maybe you have. But whether that number is <b>real skill or a statistical mirage</b> hinges on one question almost nobody asks.</p>
+
+  <h2>What a Sharpe ratio of 2 actually means</h2>
+  <p>The Sharpe ratio is return per unit of risk — roughly, how much reward you got for how bumpy the ride was. As a rough field guide on annualized numbers:</p>
+  <ul>
+    <li><b>Below 0.5</b> — weak; hard to distinguish from noise.</li>
+    <li><b>~1</b> — genuinely good and rare when it holds up out-of-sample.</li>
+    <li><b>~2</b> — excellent <i>if real</i>; also exactly where self-deception lives.</li>
+    <li><b>3+</b> — extraordinary, and almost always a red flag in a retail backtest.</li>
+  </ul>
+  <p>The catch: those benchmarks assume the number came from <b>one honest test</b>. Almost no backtest does.</p>
+
+  <h2>The question nobody asks: how many did you try?</h2>
+  <p>Test one strategy and get a Sharpe of 2 — impressive. Test <b>a hundred variations</b> and keep the best one that hit 2 — that's not skill, that's the loudest coin flip. With enough attempts, a high Sharpe appears by pure chance, and you fall in love with the survivor.</p>
+
+  <div class="card">
+    <div class="n">THE FIX</div>
+    <b>Deflated Sharpe ratio</b>
+    <p>The deflated Sharpe ratio corrects your number for how many strategies you tried. The more variations you searched, the higher the bar your Sharpe must clear to count as real. A Sharpe of 2 from 1 test can be strong; the same 2 from 200 tests can be statistically meaningless. Same number, opposite verdict.</p>
+  </div>
+
+  <h2>Three more things that quietly deflate a Sharpe of 2</h2>
+  <div class="card">
+    <div class="n">1 · COSTS</div>
+    <b>Spread, slippage and fees.</b>
+    <p>A paper Sharpe of 2 can fall below 1 — or below zero — once realistic trading costs are subtracted. If your backtest ignores costs, its Sharpe isn't measuring anything tradeable.</p>
+  </div>
+  <div class="card">
+    <div class="n">2 · THE WORST FOLD</div>
+    <b>The average hides the danger.</b>
+    <p>Mean Sharpe flatters you. Split the history into folds: a strategy can average 2 while one fold sits at −1. That worst fold is the regime where it actually blows up — and the average quietly buries it.</p>
+  </div>
+  <div class="card">
+    <div class="n">3 · LEAKAGE</div>
+    <b>Adjacent trades peeking at each other.</b>
+    <p>Ordinary cross-validation leaks in trading, because nearby trades overlap in time. Without <b>purged</b> cross-validation, your out-of-sample Sharpe is secretly part in-sample — inflated.</p>
+  </div>
+
+  <h2>So — is your Sharpe of 2 good?</h2>
+  <p>It's good if it survives all four questions: it holds after costs, across every purged fold (not just on average), and after deflating for the number of strategies you tried. If it survives that, a 2 is genuinely worth trading. If it doesn't, it was a beautiful number attached to nothing.</p>
+
+  <h2>Check it without sharing your strategy</h2>
+  <p>You don't need to reveal your logic, code, or parameters — only the <b>per-period returns</b> (e.g. <code>0.012, -0.004, 0.008 …</code>) and how many variants you tried. From those alone you can compute the deflated Sharpe, run purged cross-validation, subtract costs, and check the tail — and get a blunt verdict: <b>real edge</b>, <b>self-deception</b>, or <b>dead</b>.</p>
+  <p>That's exactly what <a href="/validate">isitalpha</a> does. You paste the numbers, we do the statistics, and your strategy stays yours.</p>
+
+  <div class="cta">
+    <div class="t">Is your Sharpe real — or luck?</div>
+    <p>Free verdict in 60 seconds. You share only the numbers — never your logic, code, or account.</p>
+    <a class="btn" href="/validate">Get an honest verdict →</a>
+  </div>
+
+  <p style="color:var(--muted);font-size:13px">We ran 5,763 strategies through an honest gauntlet; most died exactly here — a high Sharpe that couldn't survive deflation and costs. Better to find out before you risk capital, not after.</p>
+
+  <footer>
+    <div class="logo">isitalpha<span>.</span></div>
+    Informational only — not investment advice. · <a href="/legal.html">Terms &amp; Privacy</a> · <a href="/validate">Test a strategy</a>
+  </footer>
+</div>
+</body>
+</html>
