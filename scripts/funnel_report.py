@@ -25,10 +25,11 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), 
 FUNNEL_FILE = os.environ.get("FUNNEL", os.path.join(ROOT, "funnel.json"))
 
 # порядок шагов = путь клиента (должен совпадать с FUNNEL_STEPS в app.py)
-STEPS = ("land", "validate_click", "validate_run", "verdict_shown",
+STEPS = ("land", "example_click", "validate_click", "validate_run", "verdict_shown",
          "paywall_view", "pay_click", "paid")
 LABEL = {
     "land": "зашли на /validate",
+    "example_click": "нажали «попробовать пример»",
     "validate_click": "нажали «получить вердикт»",
     "validate_run": "запустили валидацию",
     "verdict_shown": "увидели вердикт",
@@ -73,6 +74,18 @@ def biggest_leak(counts: dict):
         if worst is None or dropped > worst[2]:
             worst = (pstep, cstep, dropped, pct)
     return worst
+
+
+def monotonicity_issues(counts: dict) -> list:
+    """Возвращает список (from,to,prev,cur) где поздний шаг > предыдущего (нелогично)."""
+    seq = _steps_of(counts)
+    issues = []
+    for i in range(1, len(seq)):
+        pstep, pv = seq[i - 1]
+        cstep, cv = seq[i]
+        if cv > pv:
+            issues.append((pstep, cstep, pv, cv))
+    return issues
 
 
 def parse_spend(arg: str) -> dict:
@@ -137,6 +150,13 @@ def human_report(f: dict, spend: dict | None = None) -> str:
         lines.append("")
         lines.append(f"🔴 ГЛАВНЫЙ ОБРЫВ: «{LABEL[pstep]}» → «{LABEL[cstep]}» "
                      f"(−{dropped} чел., дошло {kept}).")
+
+    mono = monotonicity_issues(totals)
+    if mono:
+        lines.append("")
+        lines.append("⚠️ НЕМОНОТОННОСТЬ (поздний шаг > раннего) — проверьте beacon/дубли:")
+        for pstep, cstep, pv, cv in mono:
+            lines.append(f"  • «{LABEL[pstep]}» {pv} → «{LABEL[cstep]}» {cv}")
 
     # человеческий вывод «из 100 зашедших: 40 запустили, …, 0 оплатили»
     if land:
@@ -214,6 +234,10 @@ def main(argv=None) -> int:
                 for a, b, pv, cv, pct in conversions(f.get("totals", {}))
             ],
             "biggest_leak": biggest_leak(f.get("totals", {})),
+            "monotonicity_issues": [
+                {"from": a, "to": b, "prev": pv, "cur": cv}
+                for a, b, pv, cv in monotonicity_issues(f.get("totals", {}))
+            ],
             "sources": f.get("sources", {}),
         }
         print(json.dumps(out, ensure_ascii=False, indent=2))

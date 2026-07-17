@@ -55,14 +55,15 @@ def _handle_validate_get(src: str, ua: str) -> None:
 
 def _handle_api_track(step: str, src: str) -> None:
     """Реплика логики Handler.do_POST /api/track: доверяем только мягким шагам."""
-    if step in ("validate_click", "verdict_shown"):
+    if step in ("example_click", "validate_click"):
         app._bump_step(step, src)
 
 
 def _handle_api_validate(src: str) -> None:
-    """Реплика логики Handler.do_POST /api/validate: fresh-вердикт → validate_run, locked → paywall_view."""
+    """Реплика логики Handler.do_POST /api/validate: fresh-вердикт → validate_run + verdict_shown, locked → paywall_view."""
     app._bump_attempt(src)
     app._bump_step("validate_run", src)
+    app._bump_step("verdict_shown", src)
     app._bump_step("paywall_view", src)
 
 
@@ -77,11 +78,11 @@ def _handle_payment_confirmed(src: str) -> None:
 
 
 def simulate_happy_path(src: str = "reddit") -> dict:
-    """Полный путь: land → click → run → verdict → paywall → pay_click → paid."""
+    """Полный путь: land → example → click → run → verdict → paywall → pay_click → paid."""
     _handle_validate_get(src, "Mozilla/5.0")
+    _handle_api_track("example_click", src)
     _handle_api_track("validate_click", src)
     _handle_api_validate(src)
-    _handle_api_track("verdict_shown", src)
     _handle_api_checkout(src)
     _handle_payment_confirmed(src)
     return app._funnel()
@@ -124,7 +125,18 @@ def audit() -> list:
         results.append(("PASS" if after_run == before_run else "FAIL",
                         f"/api/track ignores validate_run: before={before_run} after={after_run}"))
 
-        # 4. monotonicity is NOT enforced (hole)
+        before_vs = app._funnel()["totals"].get("verdict_shown", 0)
+        _handle_api_track("verdict_shown", "reddit")
+        after_vs = app._funnel()["totals"].get("verdict_shown", 0)
+        results.append(("PASS" if after_vs == before_vs else "FAIL",
+                        f"/api/track ignores verdict_shown (server-side now): before={before_vs} after={after_vs}"))
+
+        # 4. server-side verdict_shown comes with validate_run
+        f = app._funnel()
+        results.append(("PASS" if f["totals"].get("verdict_shown", 0) == f["totals"].get("validate_run", 0) else "FAIL",
+                        f"server-side verdict_shown == validate_run: {f['totals'].get('verdict_shown', 0)} vs {f['totals'].get('validate_run', 0)}"))
+
+        # 5. monotonicity is NOT enforced (hole)
         before_paid = app._funnel()["totals"].get("paid", 0)
         app._bump_step("paid", "direct")  # direct source never seen before, but step allowed
         after_paid = app._funnel()["totals"].get("paid", 0)

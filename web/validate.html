@@ -118,9 +118,10 @@
   <div class="card">
     <label style="display:flex;justify-content:space-between;align-items:center;gap:12px">
       <span>Your strategy's returns (one per line, or comma-separated). Percent or fraction — we detect it.</span>
-      <button type="button" onclick="loadExample()" style="width:auto;background:rgba(90,214,196,.14);border:1px solid rgba(90,214,196,.45);color:var(--teal);font-size:12.5px;font-weight:650;cursor:pointer;padding:5px 12px;border-radius:9px;white-space:nowrap">↧ Load example</button>
+      <button type="button" onclick="loadExample()" style="width:auto;background:rgba(90,214,196,.14);border:1px solid rgba(90,214,196,.45);color:var(--teal);font-size:12.5px;font-weight:650;cursor:pointer;padding:5px 12px;border-radius:9px;white-space:nowrap">↧ Try with example</button>
     </label>
-    <textarea id="returns" autofocus placeholder="Paste your returns here — we'll do the rest. (Not sure how? Use ‘Load example’ above.)"></textarea>
+    <div style="color:var(--muted-2);font-size:12.5px;margin-bottom:8px">Paste per-period returns, e.g. <code style="background:rgba(255,255,255,.06);padding:1px 6px;border-radius:5px">0.012, -0.004, 0.008</code> · 30+ values · 60 seconds · free verdict</div>
+    <textarea id="returns" autofocus placeholder="Paste your returns here — we'll do the rest. (Not sure how? Use ‘Try with example’ above.)"></textarea>
     <div class="row">
       <div class="f">
         <label>How many strategies did you test to find this one?</label>
@@ -161,6 +162,7 @@
 
   // подставляет пример доходностей — чтобы клиент сразу увидел формат и мог попробовать
   function loadExample(){
+    track("example_click");
     document.getElementById("returns").value =
       "0.0038, 0.0168, 0.0082, 0.0083, 0.0055, 0.0039, 0.0057, 0.0016, -0.0026, -0.0036, -0.0051, 0.0036, 0.0056, 0.0122, 0.0053, 0.0039, 0.0063, 0.0022, -0.0092, 0.0087, -0.0005, 0.0036, 0.0006, 0.0201, 0.0093, 0.0048, -0.0047, 0.0078, -0.0033, 0.0094, -0.0071, 0.0017, 0.008, -0.003, 0.003, 0.0033, 0.0082, -0.0007, 0.0066, 0.0152, -0.0069, -0.003, 0.0052, -0.0017, -0.006, 0.0112, 0.0083, 0.0093, 0.0091, 0.0069, -0.0027, -0.0124, 0.0055, -0.0043, 0.0027, 0.0048, -0.0054, 0.0003, 0.0133, 0.0072, -0.0077, 0.0012, 0.0024, 0.006, 0.0071, 0.002, 0.0009, 0.0079, -0.0065, 0.0095, 0.0045, -0.0007, -0.0013, 0.0038, -0.0068, -0.0123, 0.0047, 0.0114, 0.0013, 0.0025, 0.0021, -0.0039, 0.0047, 0.0072, 0.0023, 0.0077, -0.0043, 0.0037, -0.0026, -0.001, 0.0037, 0.003, 0.0073, 0.0061, -0.0054, 0.01, -0.0078, 0.0013, 0.0037, 0.0013, 0.0049, 0.002, -0.0043, 0.0067, 0.0014, -0.004, 0.002, 0.0015, 0.0037, -0.0019, 0.0027, 0.0005, 0.0115, -0.0006, 0.0095, 0.0011, 0.0086, 0.0159, -0.0007, 0.0025";
     document.getElementById("n_trials").value = 1;
@@ -182,7 +184,7 @@
     if(j.verdict==="INSUFFICIENT"){
       res.innerHTML='<div class="verdict v-INSUFFICIENT">⚠️ '+(j.reason||"need more data")+'</div>'; return;
     }
-    track("verdict_shown");   // воронка: реальный вердикт показан пользователю (не INSUFFICIENT)
+    // verdict_shown теперь считается на сервере при отдаче вердикта (надёжнее sendBeacon).
     // FREE: только вердикт-слово + заголовок; полный отчёт — за $9 (locked). UNCLEAR тоже идёт сюда (фейк-детект платный).
     if(j.locked){ res.innerHTML=lockedView(j); return; }
     // PAID: полный отчёт

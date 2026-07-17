@@ -16,10 +16,11 @@ FUNNEL_FILE = os.environ.get("FUNNEL", ROOT / "funnel.json")
 METRICS_FILE = ROOT / "metrics.json"
 OUT_FILE = ROOT / "web" / "funnel_dashboard.html"
 
-STEPS = ("land", "validate_click", "validate_run", "verdict_shown",
+STEPS = ("land", "example_click", "validate_click", "validate_run", "verdict_shown",
          "paywall_view", "pay_click", "paid")
 LABEL = {
     "land": "Зашли на /validate",
+    "example_click": "Нажали «попробовать пример»",
     "validate_click": "Нажали «получить вердикт»",
     "validate_run": "Запустили валидацию",
     "verdict_shown": "Увидели вердикт",

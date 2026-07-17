@@ -226,10 +226,11 @@ def stats_report() -> str:
 #   validate_click — нажал «Get honest verdict» (клиентское событие)
 #   validate_run   — сервер реально прогнал валидацию (свежий вердикт, не повтор оплаты)
 #   verdict_shown  — фронт показал вердикт-слово
+#   example_click  — нажал «Try with example» / «Показать на примере»
 #   paywall_view   — упёрся в пейволл (увидел locked-экран с ценой)
 #   pay_click      — нажал кнопку «Pay $…» (создание счёта)
 #   paid           — оплата подтверждена (IPN finished/confirmed)
-FUNNEL_STEPS = ("land", "validate_click", "validate_run", "verdict_shown",
+FUNNEL_STEPS = ("land", "example_click", "validate_click", "validate_run", "verdict_shown",
                 "paywall_view", "pay_click", "paid")
 
 
@@ -479,9 +480,10 @@ class Handler(BaseHTTPRequestHandler):
                 b = {}
             step = str(b.get("step", "")).strip()
             src = str(b.get("src", "")).strip()
-            # клиенту доверяем только «мягкие» шаги; жёсткие (validate_run/paywall_view/pay_click/paid)
+            # клиенту доверяем только «мягкие» шаги; жёсткие (validate_run/verdict_shown/paywall_view/pay_click/paid)
             # считает сервер сам — так их нельзя накрутить с фронта.
-            if step in ("validate_click", "verdict_shown"):
+            # verdict_shown теперь бьётся на сервере при отдаче вердикта (надёжнее sendBeacon).
+            if step in ("example_click", "validate_click"):
                 _bump_step(step, src)
             return self._send(204, b"")
 
@@ -511,6 +513,7 @@ class Handler(BaseHTTPRequestHandler):
             if result.get("verdict") != "INSUFFICIENT" and not order:
                 _bump_attempt(src)
                 _bump_step("validate_run", src)     # воронка: сервер реально прогнал валидацию
+                _bump_step("verdict_shown", src)    # серверный счёт надёжнее клиентского beacon
             gated = gate(result, paid)
             # серверный сигнал пейволла: неоплаченный locked-вердикт = человек упёрся в стену
             if gated.get("locked") and not order:
