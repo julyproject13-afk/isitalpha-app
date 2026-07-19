@@ -12,3 +12,8 @@ pulse/pulse_offset.txt
 paid_orders.txt
 metrics.json
 funnel.json
+
+# RU-симулятор — только дев-полигон, на боевой не выкладываем
+web/validate_ru.html
+web/landing_ru.html
+web/funnel_dashboard.html

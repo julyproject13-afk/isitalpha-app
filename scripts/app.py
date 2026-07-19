@@ -466,6 +466,21 @@ class Handler(BaseHTTPRequestHandler):
         return self._send(404, {"error": "not found"})
 
     def do_POST(self):
+        """Обёртка: любое необработанное исключение → честный 500 JSON, не обрыв связи.
+
+        Без неё исключение внутри обработчика убивает соединение, nginx отдаёт
+        502 Bad Gateway, и снаружи это неотличимо от «сервер лежит». Именно так
+        выглядел баг с JSON-массивом в returns."""
+        try:
+            return self._do_post()
+        except Exception as e:
+            try:
+                sys.stderr.write("POST %s failed: %r\n" % (self.path, e))
+                return self._send(500, {"error": "internal error"})
+            except Exception:
+                return
+
+    def _do_post(self):
         if self._too_big():                              # тело больше 1 MB — режем сразу
             return self._send(413, {"error": "payload too large"})
         # rate-limit на дорогие/абьюзабельные ручки (IPN/callback/unlock не лимитируем — HMAC/дёшево)

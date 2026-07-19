@@ -103,8 +103,35 @@ def _deflated_threshold(n_trials: int, alpha: float = 0.05) -> float:
         return 2.5 + 0.3 * math.log(max(1, n_trials))
 
 
-def parse_returns_csv(text: str) -> List[float]:
-    """Принять CSV/строки чисел → список доходностей (доля за период). Терпим к мусору."""
+def parse_returns_csv(text) -> List[float]:
+    """Принять CSV/строки чисел → список доходностей (доля за период). Терпим к мусору.
+
+    Принимаем не только строку. Квант, дёргающий API из кода, естественно пришлёт
+    JSON-массив: {"returns": [0.01, -0.005, ...]}. Раньше на этом падал .replace
+    у списка — AttributeError, обработчик умирал, nginx отдавал 502. Снаружи это
+    выглядит как «сайт не работает», причём именно у технической аудитории.
+    """
+    if isinstance(text, (list, tuple)):
+        out = []
+        for item in text:
+            if isinstance(item, bool):        # True/False доходностью не считаем
+                continue
+            if isinstance(item, (int, float)):
+                v = float(item)
+            else:
+                try:
+                    v = float(str(item).strip())
+                except (TypeError, ValueError):
+                    continue
+            if abs(v) > 2:                    # вероятно проценты (5 = 5%) → в долю
+                v = v / 100.0
+            out.append(v)
+        return out
+    if text is None:
+        return []
+    if not isinstance(text, str):
+        text = str(text)
+
     out = []
     for tok in text.replace(",", "\n").replace(";", "\n").split():
         try:

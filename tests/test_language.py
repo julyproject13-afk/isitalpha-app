@@ -8,7 +8,13 @@
 import os, re, sys
 
 WEB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "web")
-PUBLIC_EN = ["landing.html", "validate.html", "report.html"]   # публичные английские страницы
+
+# Проверяем ВСЕ html в web/, а не список из трёх файлов. Причина: 19.07.2026
+# на боевом обнаружился web/validate_ru.html — русский «СИМУЛЯТОР (RU, тест)»,
+# отдававшийся публично с кодом 200. Он не входил в список, поэтому метка-стоппер
+# его молча не видела. Белый список = дыра ровно того размера, что в него не попало.
+def public_pages():
+    return sorted(f for f in os.listdir(WEB) if f.endswith(".html"))
 
 
 def visible_text(s: str) -> str:
@@ -25,7 +31,7 @@ def visible_text(s: str) -> str:
 
 def main():
     fails = []
-    for f in PUBLIC_EN:
+    for f in public_pages():
         p = os.path.join(WEB, f)
         if not os.path.isfile(p):
             print("• skip (нет файла):", f)
