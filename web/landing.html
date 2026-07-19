@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="isitalpha — upload your strategy returns and get an honest verdict: REAL, SELF-DECEPTION, or DEAD. The same out-of-sample engine that retired 5,374 strategies that looked great on a chart.">
+<meta name="description" content="isitalpha — upload your strategy returns and get an honest verdict: REAL, BORDERLINE, SELF-DECEPTION, or DEAD. Not a yes/no stamp — it tells you which way your edge is weak. The same out-of-sample engine we ran on 5,763 strategies.">
 <meta name="keywords" content="backtest overfitting, deflated sharpe ratio, walk forward analysis, is my trading strategy real, purged cross validation, out of sample validation, quant strategy validation">
 <link rel="canonical" href="https://isitalpha.com/">
 <title>isitalpha — Is your strategy real, or self-deception?</title>
@@ -178,6 +178,7 @@
   .vchip.real{--c-ink:var(--green-soft);--c-line:rgba(98,201,138,.4);--c-bg:linear-gradient(160deg,rgba(98,201,138,.14),rgba(98,201,138,.03))}
   .vchip.self{--c-ink:var(--red-soft);--c-line:rgba(224,138,130,.42);--c-bg:linear-gradient(160deg,rgba(224,138,130,.15),rgba(224,138,130,.03))}
   .vchip.dead{--c-ink:var(--amber-soft);--c-line:rgba(230,184,92,.42);--c-bg:linear-gradient(160deg,rgba(230,184,92,.14),rgba(230,184,92,.03))}
+  .vchip.border{--c-ink:var(--teal);--c-line:rgba(90,214,196,.4);--c-bg:linear-gradient(160deg,rgba(90,214,196,.13),rgba(90,214,196,.03))}
 
   /* ===== Sections ===== */
   section.block{padding:clamp(54px,8vw,96px) 0;position:relative}
@@ -433,7 +434,7 @@
 <header class="hero wrap">
   <span class="eyebrow"><span class="pip" aria-hidden="true"></span> Honest out-of-sample validation · information only</span>
   <h1>Is your strategy <span class="serif">real</span> — or self-deception?</h1>
-  <p class="sub">A beautiful backtest is easy. Surviving reality is not. Upload your strategy's returns and our honest gauntlet returns a verdict — <b>REAL, SELF-DECEPTION, or DEAD</b> — with the exact reason. A free AI will flatter your overfit. We'll tell you the truth before the market charges you for it.</p>
+  <p class="sub">A beautiful backtest is easy. Surviving reality is not. Upload your strategy's returns and our honest gauntlet returns a verdict — <b>REAL, BORDERLINE, SELF-DECEPTION, or DEAD</b> — with the exact reason. It isn't a yes/no stamp: it tells you <i>which</i> way your edge is weak. A free AI will flatter your overfit. We'll tell you the truth before the market charges you for it.</p>
   <div class="hero-cta">
     <a class="btn btn-gold btn-lg" href="/validate">
       <svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -444,10 +445,11 @@
   <div class="hero-meta">
     <span><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg> No card for your first check</span>
     <span><svg viewBox="0 0 24 24"><path d="M12 2l8 4v5c0 5-3.5 8.5-8 11-4.5-2.5-8-6-8-11V6l8-4z" stroke-linejoin="round"/></svg> We never hold funds or trade</span>
-    <span><svg viewBox="0 0 24 24"><path d="M3 12h4l3-9 4 18 3-9h4" stroke-linecap="round" stroke-linejoin="round"/></svg> Same engine that retired <span class="js-killed">5,374</span> strategies · <span class="js-real">0</span> real</span>
+    <span><svg viewBox="0 0 24 24"><path d="M3 12h4l3-9 4 18 3-9h4" stroke-linecap="round" stroke-linejoin="round"/></svg> Same engine we ran on <span class="js-tested">5,763</span> strategies · <span class="js-borderline">389</span> borderline · <span class="js-real">0</span> real</span>
   </div>
   <div class="hero-chips" aria-hidden="true">
     <span class="vchip real"><span class="dot"></span>REAL <small>survives honest OOS</small></span>
+    <span class="vchip border"><span class="dot"></span>BORDERLINE <small>positive, but unstable</small></span>
     <span class="vchip self"><span class="dot"></span>SELF-DECEPTION <small>looks real, isn't</small></span>
     <span class="vchip dead"><span class="dot"></span>DEAD <small>no surviving edge</small></span>
   </div>
@@ -681,6 +683,7 @@
         if(!s) return;
         document.querySelectorAll('.js-tested').forEach(function(e){ e.textContent = fmt(s.tested); });
         document.querySelectorAll('.js-killed').forEach(function(e){ e.textContent = fmt(s.killed); });
+        document.querySelectorAll('.js-borderline').forEach(function(e){ e.textContent = fmt(s.borderline); });
         document.querySelectorAll('.js-real').forEach(function(e){ e.textContent = fmt(s.real); });
       }).catch(function(){});
   })();
