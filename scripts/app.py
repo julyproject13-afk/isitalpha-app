@@ -24,6 +24,18 @@ sys.path.insert(0, os.path.join(ROOT, "src"))
 WEB = os.path.join(ROOT, "web")
 PAID_FILE = os.path.join(ROOT, "paid_orders.txt")   # оплаченные order_id (локальный учёт)
 
+# Что вообще разрешено отдавать наружу. Всё, чего здесь нет, — 404, даже если
+# файл лежит в web/. Разрешение публикации должно быть осознанным действием:
+# положить файл в папку — не то же самое, что опубликовать его в интернете.
+PUBLIC_FILES = frozenset({
+    "landing.html", "validate.html", "report.html", "legal.html",
+    "stats.json", "robots.txt", "sitemap.xml",
+    "favicon.png", "og.png",
+    "learn/index.html",
+    "learn/is-a-sharpe-ratio-of-2-good.html",
+    "learn/is-my-backtest-overfit.html",
+})
+
 from validator.validator import validate, regime_judge, parse_returns_csv      # noqa: E402
 from validator.badge import badge_svg, badge_embed_html          # noqa: E402
 from validator import plans as _plans                            # noqa: E402
@@ -460,8 +472,14 @@ class Handler(BaseHTTPRequestHandler):
             slug = "".join(c for c in p[7:].strip("/") if c.isalnum() or c == "-")
             if slug and os.path.isfile(os.path.join(WEB, "learn", slug + ".html")):
                 return self._file("learn/" + slug + ".html")
+        # ЯВНЫЙ СПИСОК публичных файлов. Раньше здесь отдавался ЛЮБОЙ файл,
+        # который лежит в web/ — то есть положить файл в папку означало
+        # опубликовать его в интернете. Так наружу утекли внутренние страницы:
+        # русский симулятор, русский лендинг и дашборд воронки, публично
+        # показывавший «0 продаж, $0 выручка». Список закрывает класс проблемы:
+        # новый служебный файл в web/ больше не станет публичным сам собой.
         safe = os.path.normpath(p).lstrip("/")
-        if safe and os.path.isfile(os.path.join(WEB, safe)):
+        if safe in PUBLIC_FILES and os.path.isfile(os.path.join(WEB, safe)):
             return self._file(safe)
         return self._send(404, {"error": "not found"})
 
